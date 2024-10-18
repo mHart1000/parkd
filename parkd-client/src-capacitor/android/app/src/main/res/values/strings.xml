@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Parkd</string>
+    <string name="title_activity_main">Parkd</string>
+    <string name="package_name">net.matthewhart.parkd</string>
+    <string name="custom_url_scheme">net.matthewhart.parkd</string>
+</resources>
