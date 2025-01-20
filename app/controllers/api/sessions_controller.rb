@@ -5,7 +5,11 @@ module Api
     private
 
     def respond_with(resource, _opts = {})
-      render json: { user: resource }, status: :ok
+      if resource.persisted?
+        render json: { user: resource }, status: :ok
+      else
+        render json: { error: 'Invalid credentials' }, status: :unauthorized
+      end
     end
 
     def respond_to_on_destroy
