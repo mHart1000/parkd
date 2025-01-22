@@ -9,6 +9,8 @@
 </template>
 
 <script>
+import { Notify } from 'quasar'
+
 export default {
   name: 'LoginPage',
   data () {
@@ -26,9 +28,20 @@ export default {
             password: this.password
           }
         })
-        console.log('Login successful!', response.data)
+
+        // Store the JWT token in localStorage
+        const token = response.data.token
+        localStorage.setItem('token', token)
+
+        // Set the token in Axios for future requests
+        this.$api.defaults.headers.common.Authorization = `Bearer ${token}`
+
+        // Notify user and redirect
+        Notify.create({ type: 'positive', message: 'Login successful!' })
+        this.$router.push('/dashboard') // Redirect to a protected page
       } catch (error) {
-        console.error('Login failed:', error.response?.data || error.message)
+        Notify.create({ type: 'negative', message: 'Login failed. Please check your credentials.' })
+        console.error('Login error:', error.response?.data || error.message)
       }
     }
   }
