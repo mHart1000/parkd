@@ -2,7 +2,8 @@ Rails.application.routes.draw do
   # Devise authentication routes for API
   namespace :api do
     devise_for :users, defaults: { format: :json }, controllers: {
-      sessions: 'api/sessions'
+      sessions: 'api/sessions',
+      registrations: 'api/registrations'
     }
 
     # Define your API resources here
