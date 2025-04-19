@@ -1,15 +1,34 @@
 <template>
-  <q-page padding>
-    <div class="text-h5 q-mb-md">Welcome to Your Dashboard</div>
-    <q-btn label="Log Out" color="negative" @click="logout" />
+  <q-page class="q-pa-lg flex flex-center">
+    <div class="dashboard-wrapper">
+      <div class="text-h5 q-mb-md">Dashboard</div>
+
+      <q-card class="q-pa-md">
+        <q-card-section>
+          <div id="map" style="height: 400px; width: 500px;"></div>
+        </q-card-section>
+        <q-card-section>
+        </q-card-section>
+      </q-card>
+      <q-btn class="q-mt-md" label="Log Out" color="negative" @click="logout" />
+    </div>
   </q-page>
 </template>
 
 <script>
 import { Notify } from 'quasar'
+import { Geolocation } from '@capacitor/geolocation'
+import L from 'leaflet'
 
 export default {
   name: 'DashboardPage',
+  data () {
+    return {
+      lat: 51.505,
+      lng: -0.09,
+      map: null
+    }
+  },
   methods: {
     logout () {
       // Clear JWT token from localStorage
@@ -21,7 +40,36 @@ export default {
       // Notify user and redirect to login
       Notify.create({ type: 'positive', message: 'You have been logged out!' })
       this.$router.push('/login')
+    },
+    async getLocation () {
+      try {
+        const coordinates = await Geolocation.getCurrentPosition()
+        this.lat = coordinates.coords.latitude
+        this.lng = coordinates.coords.longitude
+        this.map.setView([this.lat, this.lng], 13)
+        L.marker([this.lat, this.lng]).addTo(this.map)
+        const location = {
+          latitude: this.lat,
+          longitude: this.lng
+        }
+        localStorage.setItem('location', JSON.stringify(location))
+        console.log('Current position:', coordinates)
+        console.log(coordinates)
+      } catch (error) {
+        console.error('Error getting location:', error)
+      }
+    },
+    initMap () {
+      this.map = L.map('map').setView([this.lat, this.lng], 13)
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(this.map)
+      L.marker([this.lat, this.lng]).addTo(this.map)
     }
+  },
+  mounted () {
+    this.getLocation()
+    this.initMap()
   }
 }
 </script>
