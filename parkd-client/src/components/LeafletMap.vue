@@ -8,6 +8,8 @@ import { Geolocation } from '@capacitor/geolocation'
 import '@geoman-io/leaflet-geoman-free'
 import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css'
 import 'leaflet/dist/leaflet.css'
+import * as turf from '@turf/turf'
+import { markRaw } from 'vue'
 
 export default {
   name: 'LeafletMap',
@@ -24,7 +26,7 @@ export default {
   },
   methods: {
     initMap () {
-      this.map = L.map('map').setView([this.lat, this.lng], 17)
+      this.map = markRaw(L.map('map').setView([this.lat, this.lng], 17))
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
@@ -43,11 +45,44 @@ export default {
         removalMode: true
       })
 
-      this.map.on('pm:create', (e) => {
+      this.map.on('pm:create', async (e) => {
         const layer = e.layer
         const geojson = layer.toGeoJSON()
-        console.log('Drawn shape:', geojson)
+        const center = turf.center(geojson)
+        const [cntrLng, cntrLat] = center.geometry.coordinates
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${cntrLat}&lon=${cntrLng}`, {
+          headers: { 'User-Agent': 'parkd-app-dev (mhart4040@gmail.com)' }
+        })
+        const data = await res.json()
+        const street = data.address?.road
 
+        console.log('ceneter', center)
+        console.log('Center coordinates:', cntrLng, cntrLat)
+        console.log('Drawn shape:', geojson)
+        console.log('Street address:', data.address)
+        console.log('Street name:', street)
+
+        // makes phat line
+        const coords = turf.getCoords(geojson)
+        const lineFeature = turf.lineString(coords)
+        const buffered = turf.buffer(lineFeature, 1.8, { units: 'meters' })
+
+        console.log('Line feature:', lineFeature)
+        console.log('Coordinates:', coords)
+        console.log('Buffered polygon:', buffered)
+        // differs removing the line layer to avoid race condition
+        layer.remove()
+        // draws the phat line
+        L.geoJSON(buffered, {
+          style: {
+            color: '#4A90E2',
+            fillColor: '#4A90E2',
+            fillOpacity: 0.4
+          }
+        }).addTo(this.map)
+
+        // Store it
+        localStorage.setItem('lastDrawnBuffer', JSON.stringify(buffered))
         localStorage.setItem('lastDrawnShape', JSON.stringify(geojson))
       })
 
