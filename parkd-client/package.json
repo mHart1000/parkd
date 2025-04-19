@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@capacitor/geolocation": "^7.1.1",
+    "@geoman-io/leaflet-geoman-free": "^2.18.3",
     "@quasar/extras": "^1.16.4",
     "axios": "^1.7.7",
     "leaflet": "^1.9.4",
