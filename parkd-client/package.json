@@ -12,6 +12,7 @@
     "build": "quasar build"
   },
   "dependencies": {
+    "@capacitor/geolocation": "^7.1.1",
     "@quasar/extras": "^1.16.4",
     "axios": "^1.7.7",
     "quasar": "^2.6.0",
