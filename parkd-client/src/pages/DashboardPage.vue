@@ -16,7 +16,7 @@ export default {
       localStorage.removeItem('token')
 
       // Optionally remove Authorization header from Axios
-      this.$api.defaults.headers.common['Authorization'] = ''
+      this.$api.defaults.headers.common.Authorization = ''
 
       // Notify user and redirect to login
       Notify.create({ type: 'positive', message: 'You have been logged out!' })

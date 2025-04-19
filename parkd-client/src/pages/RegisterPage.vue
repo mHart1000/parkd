@@ -43,8 +43,10 @@ export default {
       } catch (error) {
         Notify.create({
           type: 'negative',
-          message: error.response?.data?.message || 'Registration failed. Please try again.'
+          message: error.response?.data?.errors?.join(', ') || 'Registration failed. Please try again.'
         })
+        console.error('error')
+        console.error(error)
         console.error('Registration error:', error.response?.data || error.message)
       }
     }
