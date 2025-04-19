@@ -24,7 +24,7 @@ export default {
   },
   methods: {
     initMap () {
-      this.map = L.map('map').setView([this.lat, this.lng], 13)
+      this.map = L.map('map').setView([this.lat, this.lng], 17)
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
@@ -32,10 +32,15 @@ export default {
 
       this.map.pm.addControls({
         position: 'topright',
+        drawPolygon: true,
+        drawPolyline: true,
+        drawRectangle: false,
         drawCircle: false,
         drawMarker: false,
         drawCircleMarker: false,
-        drawPolyline: false
+        editMode: true,
+        dragMode: true,
+        removalMode: true
       })
 
       this.map.on('pm:create', (e) => {
