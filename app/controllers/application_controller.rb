@@ -21,7 +21,7 @@ class ApplicationController < ActionController::API
   def handle_standard_error(exception)
     Rails.logger.error "Error: #{exception.message}"
     Rails.logger.error exception.backtrace.join("\n")
-    render_error("An unexpected error occurred. Please try again later.", :internal_server_error)
+    render json: { error: exception.message }, status: :internal_server_error
   end
 
   protected

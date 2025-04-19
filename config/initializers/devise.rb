@@ -319,5 +319,10 @@ Devise.setup do |config|
       ['DELETE', %r{^/api/users/sign_out$}]
     ]
     jwt.expiration_time = 1.day.to_i
+    jwt.request_formats = {
+      user: [:json]
+    }
   end
+
+  config.skip_session_storage = [:http_auth]
 end
