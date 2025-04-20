@@ -104,7 +104,7 @@ export default {
         console.log('Coordinates:', coords)
         console.log('Buffered polygon:', buffered)
 
-        // differs removing the line layer to avoid race condition
+        // defers removing the line layer to avoid race condition
         layer.remove()
         // draws the phat line
         L.geoJSON(buffered, {
@@ -165,7 +165,7 @@ export default {
       const query = `
         [out:json][timeout:25];
         (
-          way["highway"]["name"="${streetName}"](around:100,${lat},${lng});
+          way["highway"]["name"="${streetName}"](around:50,${lat},${lng});
         );
         out geom;
       `
