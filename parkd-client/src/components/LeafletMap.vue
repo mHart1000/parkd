@@ -48,6 +48,8 @@ export default {
       this.map.on('pm:create', async (e) => {
         const layer = e.layer
         const geojson = layer.toGeoJSON()
+
+        // gets street/location
         const center = turf.center(geojson)
         const [cntrLng, cntrLat] = center.geometry.coordinates
         const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${cntrLat}&lon=${cntrLng}`, {
@@ -70,6 +72,7 @@ export default {
         console.log('Line feature:', lineFeature)
         console.log('Coordinates:', coords)
         console.log('Buffered polygon:', buffered)
+
         // differs removing the line layer to avoid race condition
         layer.remove()
         // draws the phat line
@@ -80,6 +83,22 @@ export default {
             fillOpacity: 0.4
           }
         }).addTo(this.map)
+
+        const lineStart = turf.point(coords[0])
+        const lineEnd = turf.point(coords[coords.length - 1])
+
+        const bearing = turf.bearing(lineStart, lineEnd)
+
+        console.log('bearing', bearing)
+
+        function cardinalDirection (bearing) {
+          const abs = Math.abs(bearing)
+          if (abs <= 20 || abs >= 160) return 'north-south'
+          if (abs >= 70 && abs <= 110) return 'east-west'
+          return 'diagonal'
+        }
+
+        console.log('Street direction:', cardinalDirection(bearing))
 
         // Store it
         localStorage.setItem('lastDrawnBuffer', JSON.stringify(buffered))
