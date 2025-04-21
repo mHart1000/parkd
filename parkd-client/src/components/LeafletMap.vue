@@ -34,7 +34,7 @@ export default {
 
       this.map.pm.addControls({
         position: 'topright',
-        drawPolygon: true,
+        drawPolygon: false,
         drawPolyline: true,
         drawRectangle: false,
         drawCircle: false,
@@ -139,6 +139,7 @@ export default {
           address: data.address,
           streetName: street,
           streetDirection: cardinalDirection(bearing),
+          center: [lineCenterLng, lineCenterLat],
           sideOfStreet,
           geojson
         })

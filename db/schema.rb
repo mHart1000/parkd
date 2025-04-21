@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_04_21_061601) do
+ActiveRecord::Schema[7.2].define(version: 2025_04_21_091421) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -19,13 +19,13 @@ ActiveRecord::Schema[7.2].define(version: 2025_04_21_061601) do
     t.time "start_time"
     t.time "end_time"
     t.string "day_of_week"
-    t.integer "ordinal"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.date "start_date"
     t.date "end_date"
     t.integer "day_of_month"
     t.string "even_odd"
+    t.jsonb "ordinal"
     t.index ["street_section_id"], name: "index_parking_rules_on_street_section_id"
   end
 

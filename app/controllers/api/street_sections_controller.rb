@@ -6,7 +6,11 @@ module Api
     end
 
     def create
+      Rails.logger.debug "########## street sections create ############"
+      Rails.logger.debug params
       section = current_user.street_sections.build(street_section_params)
+      Rails.logger.debug section.inspect
+      Rails.logger.debug section.parking_rules.first&.inspect
       if section.save
         render json: section, status: :created
       else
@@ -28,8 +32,8 @@ module Api
         :street_direction,
         :side_of_street,
         address: {},
-        center_coordinates: [],
-        coordinates: [[[[]]]],
+        center: [],
+        coordinates: {},
         parking_rules_attributes: [
           :start_time,
           :end_time,

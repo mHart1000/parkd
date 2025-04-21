@@ -60,6 +60,7 @@ export default {
     handleDrawnShape (payload) {
       this.bufferedShape = payload.buffered
       this.drawnAddress = payload.address
+      this.center = payload.center
       this.streetDirection = payload.streetDirection
       this.sideOfStreet = payload.sideOfStreet
       this.geojson = payload.geojson
@@ -68,10 +69,11 @@ export default {
 
     handleSaveRules (rules) {
       const payload = {
-        coordinates: this.bufferedShape.geometry.coordinates,
+        coordinates: this.bufferedShape,
         address: this.drawnAddress,
         street_direction: this.streetDirection,
         side_of_street: this.sideOfStreet,
+        center: this.center,
         parking_rules_attributes: rules
       }
 

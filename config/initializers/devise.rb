@@ -314,7 +314,7 @@ Devise.setup do |config|
     jwt.secret = Rails.application.credentials.jwt_secret_key!
     jwt.dispatch_requests = [['POST', %r{^/api/users/sign_in$}]]
     jwt.revocation_requests = [['DELETE', %r{^/api/users/sign_out$}]]
-    jwt.expiration_time = 30.minutes.to_i
+    jwt.expiration_time = 180.minutes.to_i
   end
 
   config.skip_session_storage = [:http_auth]

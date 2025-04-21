@@ -26,7 +26,7 @@
           <q-input v-model="form.start_time" label="Start Time" type="time" />
           <q-input v-model="form.end_time" label="End Time" type="time" />
           <q-input v-model="form.day_of_month" label="Day of Month" type="number" />
-          <q-select v-model="form.even_odd" :options="['even', 'odd']" label="Day Parity" />
+          <q-select v-model="form.even_odd" :options="['even', 'odd']" label="Even or Odd days of the month" />
           <q-input v-model="form.start_date" label="Start Date" type="date" />
           <q-input v-model="form.end_date" label="End Date" type="date" />
 
