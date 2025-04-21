@@ -59,6 +59,7 @@ export default {
         const street = data.address?.road
 
         // gets centerline of actual street at location
+        let sideOfStreet
         try {
           const streetLine = await this.fetchStreetGeometry(street, lineCenterLat, lineCenterLng)
           console.log('Street centerline:', streetLine)
@@ -74,7 +75,6 @@ export default {
           const centerlineBearing = turf.bearing(centerlineStart, centerlineEnd)
           const absBearing = Math.abs(centerlineBearing)
 
-          let sideOfStreet
           if (absBearing <= 20 || absBearing >= 160) {
             sideOfStreet = lineCenterLng < streetCenterLng ? 'west side' : 'east side'
           } else if (absBearing >= 70 && absBearing <= 110) {
@@ -134,6 +134,14 @@ export default {
         // Store it
         localStorage.setItem('lastDrawnBuffer', JSON.stringify(buffered))
         localStorage.setItem('lastDrawnShape', JSON.stringify(geojson))
+        this.$emit('shape-drawn', {
+          buffered,
+          address: data.address,
+          streetName: street,
+          streetDirection: cardinalDirection(bearing),
+          sideOfStreet,
+          geojson
+        })
       })
 
       // Restore last shape
