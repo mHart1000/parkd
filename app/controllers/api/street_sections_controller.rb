@@ -25,17 +25,17 @@ module Api
 
     def street_section_params
       params.require(:street_section).permit(
-        :coordinates,
-        :address,
         :street_direction,
         :side_of_street,
-        :center_coordinates,
+        address: {},
+        center_coordinates: [],
+        coordinates: [[[[]]]],
         parking_rules_attributes: [
           :start_time,
           :end_time,
           :day_of_week,
           :day_of_month,
-          :day_parity,
+          :even_odd,
           :start_date,
           :end_date,
           { ordinal: [] }
