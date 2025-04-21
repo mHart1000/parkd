@@ -311,18 +311,18 @@ Devise.setup do |config|
   # config.sign_in_after_change_password = true
 
   config.jwt do |jwt|
-    jwt.secret = Rails.application.credentials.secret_key_base
-    jwt.dispatch_requests = [
-      ['POST', %r{^/api/users/sign_in$}]
-    ]
-    jwt.revocation_requests = [
-      ['DELETE', %r{^/api/users/sign_out$}]
-    ]
-    jwt.expiration_time = 1.day.to_i
-    jwt.request_formats = {
-      user: [:json]
-    }
+    jwt.secret = Rails.application.credentials.jwt_secret_key!
+    jwt.dispatch_requests = [['POST', %r{^/api/users/sign_in$}]]
+    jwt.revocation_requests = [['DELETE', %r{^/api/users/sign_out$}]]
+    jwt.expiration_time = 30.minutes.to_i
   end
 
   config.skip_session_storage = [:http_auth]
+
+  Warden::Manager.after_authentication do |user, auth, opts|
+    Rails.logger.debug "Warden authenticated: #{user.inspect}"
+  end
+  Warden::Manager.before_failure do |env, opts|
+    Rails.logger.debug "Warden failed authentication for: #{opts.inspect}"
+  end
 end

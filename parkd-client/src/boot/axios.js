@@ -2,8 +2,17 @@ import { boot } from 'quasar/wrappers'
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: 'http://localhost:3000/api', // Your Rails API URL
-  withCredentials: true // Allows cookies to be sent (if using session-based auth)
+  baseURL: 'http://localhost:3000/api'
+})
+
+api.interceptors.request.use(config => {
+  const token = localStorage.getItem('token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+}, error => {
+  return Promise.reject(error)
 })
 
 export default boot(({ app }) => {
@@ -12,4 +21,4 @@ export default boot(({ app }) => {
   app.config.globalProperties.$api = api // Custom API instance
 })
 
-export { api }
+export { axios, api }
