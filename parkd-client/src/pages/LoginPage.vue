@@ -30,6 +30,9 @@ export default {
         })
 
         // Store the JWT token in localStorage
+        console.log('Login response:', response)
+        console.log('login data:', response.data)
+        console.log('Token:', response.data.token)
         const token = response.data.token
         localStorage.setItem('token', token)
 

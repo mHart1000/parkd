@@ -1,4 +1,6 @@
 class ApplicationController < ActionController::API
+  include Devise::Controllers::Helpers
+
   before_action :set_cors_headers
   before_action :set_default_response_format
   before_action :configure_permitted_parameters, if: :devise_controller?

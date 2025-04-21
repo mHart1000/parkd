@@ -10,9 +10,36 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_01_19_075314) do
+ActiveRecord::Schema[7.2].define(version: 2025_04_21_091421) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+
+  create_table "parking_rules", force: :cascade do |t|
+    t.bigint "street_section_id", null: false
+    t.time "start_time"
+    t.time "end_time"
+    t.string "day_of_week"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.date "start_date"
+    t.date "end_date"
+    t.integer "day_of_month"
+    t.string "even_odd"
+    t.jsonb "ordinal"
+    t.index ["street_section_id"], name: "index_parking_rules_on_street_section_id"
+  end
+
+  create_table "street_sections", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.jsonb "coordinates"
+    t.jsonb "address"
+    t.string "street_direction"
+    t.string "side_of_street"
+    t.jsonb "center"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id"], name: "index_street_sections_on_user_id"
+  end
 
   create_table "users", force: :cascade do |t|
     t.string "email", default: "", null: false
@@ -23,7 +50,12 @@ ActiveRecord::Schema[7.2].define(version: 2025_01_19_075314) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "name"
+    t.string "jti"
     t.index ["email"], name: "index_users_on_email", unique: true
+    t.index ["jti"], name: "index_users_on_jti", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
+
+  add_foreign_key "parking_rules", "street_sections"
+  add_foreign_key "street_sections", "users"
 end

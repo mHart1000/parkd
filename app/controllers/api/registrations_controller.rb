@@ -1,5 +1,6 @@
 module Api
   class RegistrationsController < Devise::RegistrationsController
+    include RackSessionsFix
     respond_to :json
 
     # Prevent Devise from signing in the user (which tries to write to the session)
