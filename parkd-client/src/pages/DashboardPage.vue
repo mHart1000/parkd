@@ -5,7 +5,7 @@
 
       <q-card class="q-pa-md">
         <q-card-section>
-          <LeafletMap @shape-drawn="handleDrawnShape" />
+          <LeafletMap @shape-drawn="handleDrawnShape" @feature-clicked="handleFeatureClick" />
         </q-card-section>
         <q-card-section>
           <RulePopup
@@ -66,8 +66,30 @@ export default {
       this.geojson = payload.geojson
       this.showRulePopup = true
     },
+    async handleFeatureClick (feature) {
+      const sectionId = feature.properties?.id
+      if (!sectionId) return
 
-    handleSaveRules (rules) {
+      try {
+        const res = await this.$api.get('/parking_rules', {
+          params: { street_section_id: sectionId }
+        })
+        console.log('handleFeatureClick Fetched res:', res)
+        console.log('handleFeatureClick Fetched res data:', res.data)
+        this.tempRules = res.data
+        this.drawnAddress = feature.properties?.address || {}
+        this.center = feature.properties?.center || null
+        this.bufferedShape = feature
+        this.streetDirection = feature.properties?.street_direction || ''
+        this.sideOfStreet = feature.properties?.side_of_street || ''
+        this.geojson = feature
+        this.showRulePopup = true
+      } catch (err) {
+        console.error('[handleFeatureClick] Failed to load rules:', err)
+        this.$q.notify({ type: 'negative', message: 'Could not load rules for section' })
+      }
+    },
+    async handleSaveRules (rules) {
       const payload = {
         coordinates: this.bufferedShape,
         address: this.drawnAddress,
@@ -77,20 +99,21 @@ export default {
         parking_rules_attributes: rules
       }
 
-      this.$api.post('/street_sections', { street_section: payload }, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
+      const sectionId = this.geojson?.properties?.id
+
+      try {
+        if (sectionId) {
+          await this.$api.patch(`/street_sections/${sectionId}`, { street_section: payload })
+        } else {
+          await this.$api.post('/street_sections', { street_section: payload })
         }
-      })
-        .then(() => {
-          this.showRulePopup = false
-          this.$q.notify({ type: 'positive', message: 'Rules saved!' })
-        })
-        .catch(err => {
-          console.error('Failed to save:', err)
-          this.$q.notify({ type: 'negative', message: 'Error saving rules' })
-        })
+
+        this.showRulePopup = false
+        this.$q.notify({ type: 'positive', message: 'Rules saved!' })
+      } catch (err) {
+        console.error('[handleSaveRules] Error saving:', err)
+        this.$q.notify({ type: 'negative', message: 'Error saving rules' })
+      }
     }
   }
 }

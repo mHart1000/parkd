@@ -3,6 +3,26 @@ module Api
     before_action :authenticate_user!
 
     def index
+      features = current_user.street_sections.map do |s|
+        next unless s.coordinates.present?
+
+        {
+          type: "Feature",
+          geometry: s.coordinates["geometry"],
+          properties: {
+            id: s.id,
+            side_of_street: s.side_of_street,
+            street_direction: s.street_direction,
+            address: s.address,
+            center: s.center
+          }
+        }
+      end.compact
+
+      render json: {
+        type: "FeatureCollection",
+        features: features
+      }
     end
 
     def create
@@ -22,6 +42,12 @@ module Api
     end
 
     def update
+      section = current_user.street_sections.find(params[:id])
+      if section.update(street_section_params)
+        render json: section
+      else
+        render json: { errors: section.errors.full_messages }, status: :unprocessable_entity
+      end
     end
 
     def destroy
@@ -35,6 +61,7 @@ module Api
         center: [],
         coordinates: {},
         parking_rules_attributes: [
+          :id,
           :start_time,
           :end_time,
           :day_of_week,
