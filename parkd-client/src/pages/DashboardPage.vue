@@ -74,8 +74,12 @@ export default {
         const res = await this.$api.get('/parking_rules', {
           params: { street_section_id: sectionId }
         })
+        console.log('handleFeatureClick Fetched res:', res)
+        console.log('handleFeatureClick Fetched res data:', res.data)
         this.tempRules = res.data
-        this.bufferedShape = feature.geometry
+        this.drawnAddress = feature.properties?.address || {}
+        this.center = feature.properties?.center || null
+        this.bufferedShape = feature
         this.streetDirection = feature.properties?.street_direction || ''
         this.sideOfStreet = feature.properties?.side_of_street || ''
         this.geojson = feature
@@ -85,8 +89,7 @@ export default {
         this.$q.notify({ type: 'negative', message: 'Could not load rules for section' })
       }
     },
-
-    handleSaveRules (rules) {
+    async handleSaveRules (rules) {
       const payload = {
         coordinates: this.bufferedShape,
         address: this.drawnAddress,
@@ -96,20 +99,21 @@ export default {
         parking_rules_attributes: rules
       }
 
-      this.$api.post('/street_sections', { street_section: payload }, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
+      const sectionId = this.geojson?.properties?.id
+
+      try {
+        if (sectionId) {
+          await this.$api.patch(`/street_sections/${sectionId}`, { street_section: payload })
+        } else {
+          await this.$api.post('/street_sections', { street_section: payload })
         }
-      })
-        .then(() => {
-          this.showRulePopup = false
-          this.$q.notify({ type: 'positive', message: 'Rules saved!' })
-        })
-        .catch(err => {
-          console.error('Failed to save:', err)
-          this.$q.notify({ type: 'negative', message: 'Error saving rules' })
-        })
+
+        this.showRulePopup = false
+        this.$q.notify({ type: 'positive', message: 'Rules saved!' })
+      } catch (err) {
+        console.error('[handleSaveRules] Error saving:', err)
+        this.$q.notify({ type: 'negative', message: 'Error saving rules' })
+      }
     }
   }
 }

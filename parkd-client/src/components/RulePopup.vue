@@ -111,6 +111,7 @@ export default {
       this.show = false
     },
     formatRule (rule) {
+      console.log('local rules: ', this.localRules)
       console.log('rule: ', rule)
       const parts = []
       if (rule.ordinal.length && rule.day_of_week) parts.push(`${rule.ordinal.join(' & ')} ${rule.day_of_week}`)
