@@ -5,7 +5,7 @@
 
       <q-card class="q-pa-md">
         <q-card-section>
-          <LeafletMap @shape-drawn="handleDrawnShape" />
+          <LeafletMap @shape-drawn="handleDrawnShape" @feature-clicked="handleFeatureClick" />
         </q-card-section>
         <q-card-section>
           <RulePopup
@@ -64,6 +64,14 @@ export default {
       this.streetDirection = payload.streetDirection
       this.sideOfStreet = payload.sideOfStreet
       this.geojson = payload.geojson
+      this.showRulePopup = true
+    },
+    handleFeatureClick (feature) {
+      this.tempRules = []
+      this.bufferedShape = feature.geometry
+      this.streetDirection = feature.properties?.street_direction || ''
+      this.sideOfStreet = feature.properties?.side_of_street || ''
+      this.geojson = feature
       this.showRulePopup = true
     },
 

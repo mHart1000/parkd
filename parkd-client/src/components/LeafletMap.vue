@@ -23,6 +23,7 @@ export default {
   mounted () {
     this.initMap()
     this.getLocation()
+    this.populateMap()
   },
   methods: {
     initMap () {
@@ -205,6 +206,24 @@ export default {
           name: streetName
         }
       }
+    },
+    populateMap () {
+      this.$api.get('/street_sections')
+        .then(res => {
+          console.log('res', res)
+          console.log('res.data', res.data)
+          const featureCollection = res.data
+          L.geoJSON(featureCollection, {
+            onEachFeature: (feature, layer) => {
+              layer.on('click', () => {
+                this.$emit('feature-clicked', feature)
+              })
+            }
+          }).addTo(this.map)
+        })
+        .catch(err => {
+          console.error('[populateMap] Failed to load street sections:', err)
+        })
     }
   }
 }

@@ -3,6 +3,24 @@ module Api
     before_action :authenticate_user!
 
     def index
+      features = current_user.street_sections.map do |s|
+        next unless s.coordinates.present?
+
+        {
+          type: "Feature",
+          geometry: s.coordinates["geometry"],
+          properties: {
+            id: s.id,
+            side_of_street: s.side_of_street,
+            street_direction: s.street_direction
+          }
+        }
+      end.compact
+
+      render json: {
+        type: "FeatureCollection",
+        features: features
+      }
     end
 
     def create
