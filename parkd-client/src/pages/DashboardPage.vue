@@ -66,13 +66,24 @@ export default {
       this.geojson = payload.geojson
       this.showRulePopup = true
     },
-    handleFeatureClick (feature) {
-      this.tempRules = []
-      this.bufferedShape = feature.geometry
-      this.streetDirection = feature.properties?.street_direction || ''
-      this.sideOfStreet = feature.properties?.side_of_street || ''
-      this.geojson = feature
-      this.showRulePopup = true
+    async handleFeatureClick (feature) {
+      const sectionId = feature.properties?.id
+      if (!sectionId) return
+
+      try {
+        const res = await this.$api.get('/parking_rules', {
+          params: { street_section_id: sectionId }
+        })
+        this.tempRules = res.data
+        this.bufferedShape = feature.geometry
+        this.streetDirection = feature.properties?.street_direction || ''
+        this.sideOfStreet = feature.properties?.side_of_street || ''
+        this.geojson = feature
+        this.showRulePopup = true
+      } catch (err) {
+        console.error('[handleFeatureClick] Failed to load rules:', err)
+        this.$q.notify({ type: 'negative', message: 'Could not load rules for section' })
+      }
     },
 
     handleSaveRules (rules) {

@@ -7,7 +7,7 @@
 
       <q-card-section>
         <q-list bordered>
-          <q-item v-for="(rule, index) in rules" :key="index">
+          <q-item v-for="(rule, index) in localRules" :key="index">
             <q-item-section>
               {{ formatRule(rule) }}
             </q-item-section>
@@ -46,13 +46,14 @@
 export default {
   name: 'RulePopup',
   props: {
-    modelValue: Boolean
+    modelValue: Boolean,
+    rules: Array
   },
   emits: ['update:modelValue', 'save'],
   data () {
     return {
       show: this.modelValue,
-      rules: [],
+      localRules: [],
       form: {
         day_of_week: null,
         ordinal: [],
@@ -73,19 +74,25 @@ export default {
     },
     show (val) {
       this.$emit('update:modelValue', val)
+    },
+    rules: {
+      handler (newRules) {
+        this.localRules = [...newRules]
+      },
+      immediate: true
     }
   },
   methods: {
     addRule () {
-      this.rules.push({ ...this.form })
+      this.localRules.push({ ...this.form })
       this.resetForm()
     },
     editRule (index) {
-      this.form = { ...this.rules[index] }
-      this.rules.splice(index, 1)
+      this.form = { ...this.localRules[index] }
+      this.localRules.splice(index, 1)
     },
     removeRule (index) {
-      this.rules.splice(index, 1)
+      this.localRules.splice(index, 1)
     },
     resetForm () {
       this.form = {
@@ -100,10 +107,11 @@ export default {
       }
     },
     saveRules () {
-      this.$emit('save', this.rules)
+      this.$emit('save', this.localRules)
       this.show = false
     },
     formatRule (rule) {
+      console.log('rule: ', rule)
       const parts = []
       if (rule.ordinal.length && rule.day_of_week) parts.push(`${rule.ordinal.join(' & ')} ${rule.day_of_week}`)
       if (rule.day_of_month) parts.push(`on day ${rule.day_of_month}`)
