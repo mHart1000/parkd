@@ -20,10 +20,26 @@ export default {
       lng: -0.09
     }
   },
+  props: {
+    placingParkingSpot: {
+      type: Boolean,
+      default: false
+    }
+  },
   mounted () {
     this.initMap()
     this.getLocation()
     this.populateMap()
+  },
+  watch: {
+    placingParkingSpot (val) {
+      if (val) {
+        this.map.pm.enableDraw('Marker')
+        this.$q.notify({ type: 'info', message: 'Click on the map to place a parking spot' })
+      } else {
+        this.map.pm.disableDraw('Marker')
+      }
+    }
   },
   methods: {
     initMap () {
@@ -39,7 +55,7 @@ export default {
         drawPolyline: true,
         drawRectangle: false,
         drawCircle: false,
-        drawMarker: false,
+        drawMarker: true,
         drawCircleMarker: false,
         editMode: true,
         dragMode: true,
@@ -50,100 +66,158 @@ export default {
         const layer = e.layer
         const geojson = layer.toGeoJSON()
 
-        // gets street/location
-        const lineCenter = turf.center(geojson)
-        const [lineCenterLng, lineCenterLat] = lineCenter.geometry.coordinates
-        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lineCenterLat}&lon=${lineCenterLng}`, {
-          headers: { 'User-Agent': 'parkd-app-dev (mhart4040@gmail.com)' }
-        })
-        const data = await res.json()
-        const street = data.address?.road
+        if (geojson.geometry.type === 'Point') {
+          const [lng, lat] = geojson.geometry.coordinates
 
-        // gets centerline of actual street at location
-        let sideOfStreet
-        try {
-          const streetLine = await this.fetchStreetGeometry(street, lineCenterLat, lineCenterLng)
-          console.log('Street centerline:', streetLine)
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`, {
+            headers: { 'User-Agent': 'parkd-app-dev (mhart4040@gmail.com)' }
+          })
+          const data = await res.json()
+          const street = data.address?.road
 
-          const nearest = turf.nearestPointOnLine(streetLine, lineCenter)
-          console.log('Nearest point on line:', nearest)
-          const [streetCenterLng, streetCenterLat] = nearest.geometry.coordinates
+          let sideOfStreet
+          try {
+            const streetLine = await this.fetchStreetGeometry(street, lat, lng)
+            const nearest = turf.nearestPointOnLine(streetLine, geojson)
+            const [streetLng, streetLat] = nearest.geometry.coordinates
 
-          // get direction of street
-          const lineCoords = turf.getCoords(streetLine)
-          const centerlineStart = turf.point(lineCoords[0])
-          const centerlineEnd = turf.point(lineCoords[lineCoords.length - 1])
-          const centerlineBearing = turf.bearing(centerlineStart, centerlineEnd)
-          const absBearing = Math.abs(centerlineBearing)
+            const bearing = turf.bearing(
+              turf.point(streetLine.geometry.coordinates[0]),
+              turf.point(streetLine.geometry.coordinates.at(-1))
+            )
+            const abs = Math.abs(bearing)
 
-          if (absBearing <= 20 || absBearing >= 160) {
-            sideOfStreet = lineCenterLng < streetCenterLng ? 'west side' : 'east side'
-          } else if (absBearing >= 70 && absBearing <= 110) {
-            sideOfStreet = lineCenterLat < streetCenterLat ? 'south side' : 'north side'
-          } else {
-            sideOfStreet = 'diagonal'
+            if (abs <= 20 || abs >= 160) {
+              sideOfStreet = lng < streetLng ? 'west side' : 'east side'
+            } else if (abs >= 70 && abs <= 110) {
+              sideOfStreet = lat < streetLat ? 'south side' : 'north side'
+            } else {
+              sideOfStreet = 'diagonal'
+            }
+          } catch (e) {
+            console.warn('Street geometry fetch failed:', e.message)
           }
 
-          console.log('Street direction (bearing):', centerlineBearing.toFixed(2))
-          console.log('Determined side of street:', sideOfStreet)
-        } catch (e) {
-          console.warn('Street geometry fetch failed:', e.message)
-        }
+          try {
+            await this.$api.post('/parking_spots', {
+              parking_spot: {
+                coordinates: { lat, lng },
+                address: data.address,
+                side_of_street: sideOfStreet,
+                active: true
+              }
+            })
 
-        console.log('center', lineCenter)
-        console.log('Center coordinates:', lineCenterLng, lineCenterLat)
-        console.log('Drawn shape:', geojson)
-        console.log('Street address:', data.address)
-        console.log('Street name:', street)
+            this.$q.notify({ type: 'positive', message: 'Parking spot saved!' })
 
-        // makes phat line
-        const coords = turf.getCoords(geojson)
-        const lineFeature = turf.lineString(coords)
-        const buffered = turf.buffer(lineFeature, 1.8, { units: 'meters' })
-
-        console.log('Line feature:', lineFeature)
-        console.log('Coordinates:', coords)
-        console.log('Buffered polygon:', buffered)
-
-        // defers removing the line layer to avoid race condition
-        layer.remove()
-        // draws the phat line
-        L.geoJSON(buffered, {
-          style: {
-            color: '#4A90E2',
-            fillColor: '#4A90E2',
-            fillOpacity: 0.4
+            L.geoJSON(geojson, {
+              pointToLayer: (geoJsonPoint, latlng) => {
+                return L.marker(latlng, { icon: L.icon({ iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png' }) })
+              }
+            }).addTo(this.map)
+          } catch (err) {
+            console.error('[Save Parking Spot] error:', err)
+            this.$q.notify({ type: 'negative', message: 'Failed to save parking spot' })
           }
-        }).addTo(this.map)
 
-        const lineStart = turf.point(coords[0])
-        const lineEnd = turf.point(coords[coords.length - 1])
+          layer.remove() // Remove temporary marker
+          this.$emit('parking-spot-placed')
+        } else {
+          // gets street/location
+          const lineCenter = turf.center(geojson)
+          const [lineCenterLng, lineCenterLat] = lineCenter.geometry.coordinates
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lineCenterLat}&lon=${lineCenterLng}`, {
+            headers: { 'User-Agent': 'parkd-app-dev (mhart4040@gmail.com)' }
+          })
+          const data = await res.json()
+          const street = data.address?.road
 
-        const bearing = turf.bearing(lineStart, lineEnd)
+          // gets centerline of actual street at location
+          let sideOfStreet
+          try {
+            const streetLine = await this.fetchStreetGeometry(street, lineCenterLat, lineCenterLng)
+            console.log('Street centerline:', streetLine)
 
-        console.log('bearing', bearing)
+            const nearest = turf.nearestPointOnLine(streetLine, lineCenter)
+            console.log('Nearest point on line:', nearest)
+            const [streetCenterLng, streetCenterLat] = nearest.geometry.coordinates
 
-        function cardinalDirection (bearing) {
-          const abs = Math.abs(bearing)
-          if (abs <= 20 || abs >= 160) return 'north-south'
-          if (abs >= 70 && abs <= 110) return 'east-west'
-          return 'diagonal'
+            // get direction of street
+            const lineCoords = turf.getCoords(streetLine)
+            const centerlineStart = turf.point(lineCoords[0])
+            const centerlineEnd = turf.point(lineCoords[lineCoords.length - 1])
+            const centerlineBearing = turf.bearing(centerlineStart, centerlineEnd)
+            const absBearing = Math.abs(centerlineBearing)
+
+            if (absBearing <= 20 || absBearing >= 160) {
+              sideOfStreet = lineCenterLng < streetCenterLng ? 'west side' : 'east side'
+            } else if (absBearing >= 70 && absBearing <= 110) {
+              sideOfStreet = lineCenterLat < streetCenterLat ? 'south side' : 'north side'
+            } else {
+              sideOfStreet = 'diagonal'
+            }
+
+            console.log('Street direction (bearing):', centerlineBearing.toFixed(2))
+            console.log('Determined side of street:', sideOfStreet)
+          } catch (e) {
+            console.warn('Street geometry fetch failed:', e.message)
+          }
+
+          console.log('center', lineCenter)
+          console.log('Center coordinates:', lineCenterLng, lineCenterLat)
+          console.log('Drawn shape:', geojson)
+          console.log('Street address:', data.address)
+          console.log('Street name:', street)
+
+          // makes phat line
+          const coords = turf.getCoords(geojson)
+          const lineFeature = turf.lineString(coords)
+          const buffered = turf.buffer(lineFeature, 1.8, { units: 'meters' })
+
+          console.log('Line feature:', lineFeature)
+          console.log('Coordinates:', coords)
+          console.log('Buffered polygon:', buffered)
+
+          // defers removing the line layer to avoid race condition
+          layer.remove()
+          // draws the phat line
+          L.geoJSON(buffered, {
+            style: {
+              color: '#4A90E2',
+              fillColor: '#4A90E2',
+              fillOpacity: 0.4
+            }
+          }).addTo(this.map)
+
+          const lineStart = turf.point(coords[0])
+          const lineEnd = turf.point(coords[coords.length - 1])
+
+          const bearing = turf.bearing(lineStart, lineEnd)
+
+          console.log('bearing', bearing)
+
+          function cardinalDirection (bearing) {
+            const abs = Math.abs(bearing)
+            if (abs <= 20 || abs >= 160) return 'north-south'
+            if (abs >= 70 && abs <= 110) return 'east-west'
+            return 'diagonal'
+          }
+
+          console.log('Street direction:', cardinalDirection(bearing))
+
+          // Store it
+          localStorage.setItem('lastDrawnBuffer', JSON.stringify(buffered))
+          localStorage.setItem('lastDrawnShape', JSON.stringify(geojson))
+          this.$emit('shape-drawn', {
+            buffered,
+            address: data.address,
+            streetName: street,
+            streetDirection: cardinalDirection(bearing),
+            center: [lineCenterLng, lineCenterLat],
+            sideOfStreet,
+            geojson
+          })
         }
-
-        console.log('Street direction:', cardinalDirection(bearing))
-
-        // Store it
-        localStorage.setItem('lastDrawnBuffer', JSON.stringify(buffered))
-        localStorage.setItem('lastDrawnShape', JSON.stringify(geojson))
-        this.$emit('shape-drawn', {
-          buffered,
-          address: data.address,
-          streetName: street,
-          streetDirection: cardinalDirection(bearing),
-          center: [lineCenterLng, lineCenterLat],
-          sideOfStreet,
-          geojson
-        })
       })
 
       // Restore last shape
@@ -216,6 +290,7 @@ export default {
           L.geoJSON(featureCollection, {
             onEachFeature: (feature, layer) => {
               layer.on('click', () => {
+                if (this.placingParkingSpot) return
                 this.$emit('feature-clicked', feature)
               })
             }
@@ -223,6 +298,28 @@ export default {
         })
         .catch(err => {
           console.error('[populateMap] Failed to load street sections:', err)
+        })
+
+      this.$api.get('/parking_spots', {
+        params: { active: true }
+      })
+        .then(res => {
+          const spot = res.data
+          if (!spot || !spot.coordinates) return
+
+          const { lat, lng } = spot.coordinates
+
+          const marker = L.marker([lat, lng], {
+            icon: L.icon({
+              iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png'
+            })
+          })
+
+          marker.bindPopup('Your active parking spot')
+          marker.addTo(this.map)
+        })
+        .catch(err => {
+          console.error('[populateMap] Failed to load parking spot:', err)
         })
     }
   }

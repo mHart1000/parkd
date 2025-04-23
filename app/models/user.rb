@@ -8,4 +8,5 @@ class User < ApplicationRecord
          :jwt_authenticatable, jwt_revocation_strategy: self
 
   has_many :street_sections
+  has_many :parking_spots
 end
