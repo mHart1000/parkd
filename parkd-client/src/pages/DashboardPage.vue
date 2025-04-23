@@ -5,7 +5,20 @@
 
       <q-card class="q-pa-md">
         <q-card-section>
-          <LeafletMap @shape-drawn="handleDrawnShape" @feature-clicked="handleFeatureClick" />
+          <q-btn
+            label="Add Parking Spot"
+            class="q-mt-md"
+            color="primary"
+            @click="placingParkingSpot = true"
+          />
+        </q-card-section>
+        <q-card-section>
+          <LeafletMap
+            :placingParkingSpot="placingParkingSpot"
+            @shape-drawn="handleDrawnShape"
+            @feature-clicked="handleFeatureClick"
+            @parking-spot-placed="placingParkingSpot = false"
+          />
         </q-card-section>
         <q-card-section>
           <RulePopup
@@ -42,7 +55,8 @@ export default {
       drawnAddress: null,
       streetDirection: '',
       sideOfStreet: '',
-      geojson: null
+      geojson: null,
+      placingParkingSpot: false
     }
   },
   methods: {

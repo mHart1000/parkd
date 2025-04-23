@@ -8,6 +8,7 @@ Rails.application.routes.draw do
     resources :users, only: [:index, :show, :create, :update, :destroy]
     resources :street_sections, only: [:index, :create, :show, :update, :destroy]
     resources :parking_rules, only: [:index, :create, :show, :update, :destroy]
+    resources :parking_spots, only: [:index, :create, :show, :update, :destroy]
   end
 
   # Health check endpoint for uptime monitoring

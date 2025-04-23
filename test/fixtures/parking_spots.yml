@@ -1,0 +1,13 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  coordinates: 
+  side_of_street: MyString
+  address: 
+  user: one
+
+two:
+  coordinates: 
+  side_of_street: MyString
+  address: 
+  user: two
