@@ -101,7 +101,8 @@ export default {
           try {
             await this.$api.post('/parking_spots', {
               parking_spot: {
-                coordinates: { lat, lng },
+                coordinates: geojson,
+                geometry: geojson.geometry,
                 address: data.address,
                 side_of_street: sideOfStreet,
                 active: true
@@ -307,8 +308,11 @@ export default {
           const spot = res.data
           if (!spot || !spot.coordinates) return
 
-          const { lat, lng } = spot.coordinates
-
+          const [lng, lat] = spot.coordinates.geometry.coordinates
+          console.log('lat', lat)
+          console.log('lng', lng)
+          console.log('spot', spot)
+          console.log('spot.coordinates', spot.coordinates)
           const marker = L.marker([lat, lng], {
             icon: L.icon({
               iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png'

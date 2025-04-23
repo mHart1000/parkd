@@ -25,12 +25,36 @@ module Api
       }
     end
 
+
     def create
-      Rails.logger.debug "########## street sections create ############"
-      Rails.logger.debug params
-      section = current_user.street_sections.build(street_section_params)
-      Rails.logger.debug section.inspect
-      Rails.logger.debug section.parking_rules.first&.inspect
+      section_params = street_section_params
+      factory = RGeo::Geographic.spherical_factory(srid: 4326)
+
+      if section_params[:geometry].present?
+        coords = section_params[:geometry]['coordinates']
+        ring_coords = coords.first
+Rails.logger.debug "########## GEOMETRY DEBUG ##########"
+Rails.logger.debug coords.inspect
+Rails.logger.debug coords.first.inspect
+Rails.logger.debug coords.first == coords.first&.dup
+Rails.logger.debug "########## GEOMETRY DEBUG ##########"
+
+        # Ensure ring is closed (first and last point are equal)
+        if ring_coords.first != ring_coords.last
+          ring_coords << ring_coords.first
+        end
+
+        if ring_coords.length < 4
+          return render json: { error: "Invalid polygon: must have at least 4 points" }, status: :unprocessable_entity
+        end
+
+        ring = factory.linear_ring(ring_coords.map { |lng, lat| factory.point(lng, lat) })
+        polygon = factory.polygon(ring)
+        section_params[:geometry] = polygon
+      end
+
+      section = current_user.street_sections.new(section_params)
+
       if section.save
         render json: section, status: :created
       else
@@ -57,6 +81,7 @@ module Api
       params.require(:street_section).permit(
         :street_direction,
         :side_of_street,
+        geometry: {},
         address: {},
         center: [],
         coordinates: {},
