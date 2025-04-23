@@ -2,7 +2,15 @@
   <q-page class="q-pa-lg flex flex-center">
     <div class="dashboard-wrapper">
       <div class="text-h5 q-mb-md">Dashboard</div>
-
+      <q-banner
+        v-if="showParkingConflict"
+        class="bg-red text-white q-mb-md q-pa-lg "
+        rounded
+      >
+        <div class="text-h5">
+          Warning: Upcoming Parking Violation
+        </div>
+      </q-banner>
       <q-card class="q-pa-md">
         <q-card-section>
           <q-btn
@@ -56,7 +64,16 @@ export default {
       streetDirection: '',
       sideOfStreet: '',
       geojson: null,
-      placingParkingSpot: false
+      placingParkingSpot: false,
+      showParkingConflict: false
+    }
+  },
+  async mounted () {
+    try {
+      const res = await this.$api.get('/alerts/nearby_upcoming_rules')
+      this.showParkingConflict = res.data.alert
+    } catch (err) {
+      console.error('[Dashboard] Warning check failed:', err)
     }
   },
   methods: {
@@ -107,6 +124,7 @@ export default {
       const payload = {
         coordinates: this.bufferedShape,
         address: this.drawnAddress,
+        geometry: this.bufferedShape.geometry,
         street_direction: this.streetDirection,
         side_of_street: this.sideOfStreet,
         center: this.center,

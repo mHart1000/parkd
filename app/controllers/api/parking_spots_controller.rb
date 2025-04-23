@@ -15,8 +15,17 @@ class Api::ParkingSpotsController < ApplicationController
   end
 
   def create
+    spot_params = parking_spot_params
+
+    if spot_params[:geometry].present?
+      factory = RGeo::Geographic.spherical_factory(srid: 4326)
+      lng, lat = spot_params[:geometry][:coordinates]
+      spot_params[:geometry] = factory.point(lng, lat)
+    end
+
     current_user.parking_spots.update_all(active: false)
-    spot = current_user.parking_spots.build(parking_spot_params)
+
+    spot = current_user.parking_spots.new(spot_params)
 
     if spot.save
       render json: spot, status: :created
@@ -28,6 +37,6 @@ class Api::ParkingSpotsController < ApplicationController
   private
 
   def parking_spot_params
-    params.require(:parking_spot).permit(:side_of_street, :active, coordinates: {}, address: {})
+    params.require(:parking_spot).permit(:side_of_street, :active, geometry: {}, coordinates: {}, address: {})
   end
 end

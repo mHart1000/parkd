@@ -10,9 +10,13 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_04_23_022240) do
+ActiveRecord::Schema[7.2].define(version: 2025_04_23_093531) do
+  create_schema "topology"
+
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+  enable_extension "postgis"
+  enable_extension "postgis_topology"
 
   create_table "parking_rules", force: :cascade do |t|
     t.bigint "street_section_id", null: false
@@ -37,6 +41,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_04_23_022240) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.boolean "active"
+    t.geography "geometry", limit: {:srid=>4326, :type=>"st_point", :geographic=>true}
     t.index ["user_id"], name: "index_parking_spots_on_user_id"
   end
 
@@ -49,6 +54,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_04_23_022240) do
     t.jsonb "center"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.geography "geometry", limit: {:srid=>4326, :type=>"st_polygon", :geographic=>true}
     t.index ["user_id"], name: "index_street_sections_on_user_id"
   end
 
