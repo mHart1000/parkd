@@ -5,7 +5,7 @@ class Api::AlertsController < ApplicationController
     spot = current_user.parking_spots.find_by(active: true)
     return render json: { alert: false } unless spot&.geometry
 
-    now = Time.zone.now
+    now = Time.now.getlocal
     tomorrow = now + 24.hours
 
     candidate_sections = StreetSection
@@ -14,7 +14,7 @@ class Api::AlertsController < ApplicationController
       .where(
         "ST_DWithin(street_sections.geometry::geography, ST_GeomFromText(?, 4326)::geography, ?)",
         spot.geometry.as_text,
-        4.57 # 15 feet
+        6.1 # 20 feet
       ).distinct
 
       Rails.logger.debug"########### ALERTS DEBUG ##########"
@@ -26,20 +26,39 @@ class Api::AlertsController < ApplicationController
     Rails.logger.debug "Spot coordinates: #{spot.geometry.coordinates.inspect}"
       Rails.logger.debug"########### ALERTS DEBUG ##########"
       Rails.logger.debug"########### ALERTS DEBUG ##########"
+
     close_section = candidate_sections.any? do |section|
       section.parking_rules.any? do |rule|
         rule_day = rule.day_of_week
-        rule_time = rule.start_time
+        rule_start_time = rule.start_time
+        rule_end_time = rule.end_time
 
         next unless [now.strftime('%A'), tomorrow.strftime('%A')].include?(rule_day)
 
         rule_date = rule_day == now.strftime('%A') ? now.to_date : now.to_date + 1
-        scheduled_start = Time.zone.local(
+        scheduled_start = Time.local(
           rule_date.year, rule_date.month, rule_date.day,
-          rule_time.hour, rule_time.min, rule_time.sec
+          rule_start_time.hour, rule_start_time.min, rule_start_time.sec
+        )
+        scheduled_end = Time.local(
+          rule_date.year, rule_date.month, rule_date.day,
+          rule_end_time.hour, rule_end_time.min, rule_end_time.sec
         )
 
-        scheduled_start.between?(now, tomorrow)
+        Rails.logger.debug "############# ALERTS DEBUG  #2 ##########"
+        Rails.logger.debug "rule: #{rule.inspect}"
+        Rails.logger.debug "rule_day: #{rule_day}"
+        Rails.logger.debug "start_rule_time: #{rule_start_time}"
+        Rails.logger.debug "end_rule_time: #{rule_end_time}"
+        Rails.logger.debug "rule_date: #{rule_date}"
+        Rails.logger.debug "Scheduled start: #{scheduled_start}"
+        Rails.logger.debug "Scheduled end: #{scheduled_end}"
+        Rails.logger.debug "Now: #{now}"
+        Rails.logger.debug "Tomorrow: #{tomorrow}"
+        Rails.logger.debug "Scheduled start between now and tomorrow: #{scheduled_start.between?(now, tomorrow)}"
+        Rails.logger.debug "Scheduled end between now and tomorrow: #{scheduled_end.between?(now, tomorrow)}"
+        Rails.logger.debug "############# ALERTS DEBUG  #2 ##########"
+        (scheduled_start.between?(now, tomorrow) || scheduled_end.between?(now, tomorrow))
       end
     end
 
