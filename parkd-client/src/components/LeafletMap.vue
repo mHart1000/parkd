@@ -17,7 +17,13 @@ export default {
     return {
       map: null,
       lat: 51.505,
-      lng: -0.09
+      lng: -0.09,
+      carIcon: L.divIcon({
+        html: '<i class="fa-solid fa-car-side" style="font-size:24px;color:#0fe004"></i>',
+        className: '',
+        iconSize: [24, 24],
+        iconAnchor: [12, 24]
+      })
     }
   },
   props: {
@@ -35,7 +41,11 @@ export default {
   watch: {
     placingParkingSpot (val) {
       if (val) {
-        this.map.pm.enableDraw('Marker')
+        this.map.pm.enableDraw('Marker', {
+          markerStyle: {
+            icon: this.carIcon
+          }
+        })
         this.$q.notify({ type: 'info', message: 'Click on the map to place a parking spot' })
       } else {
         this.map.pm.disableDraw('Marker')
@@ -202,7 +212,7 @@ export default {
 
         L.geoJSON(geojson, {
           pointToLayer: (geoJsonPoint, latlng) => {
-            return L.marker(latlng, { icon: L.icon({ iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png' }) })
+            return L.marker(latlng, { icon: this.carIcon })
           }
         }).addTo(this.map)
       } catch (err) {
@@ -266,11 +276,7 @@ export default {
           console.log('lng', lng)
           console.log('spot', spot)
           console.log('spot.coordinates', spot.coordinates)
-          const marker = L.marker([lat, lng], {
-            icon: L.icon({
-              iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png'
-            })
-          })
+          const marker = L.marker([lat, lng], { icon: this.carIcon })
 
           marker.bindPopup('Your active parking spot')
           marker.addTo(this.map)
