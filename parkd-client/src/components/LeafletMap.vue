@@ -10,6 +10,7 @@ import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css'
 import 'leaflet/dist/leaflet.css'
 import * as turf from '@turf/turf'
 import { markRaw } from 'vue'
+import { createFreehandLine } from '../utils/freehandLine.js'
 
 export default {
   name: 'LeafletMap',
@@ -18,6 +19,7 @@ export default {
       map: null,
       lat: 51.505,
       lng: -0.09,
+      freehand: null,
       carIcon: L.divIcon({
         html: '<i class="fa-solid fa-car-side" style="font-size:24px;color:#0fe004"></i>',
         className: '',
@@ -28,6 +30,10 @@ export default {
   },
   props: {
     placingParkingSpot: {
+      type: Boolean,
+      default: false
+    },
+    freehandActive: {
       type: Boolean,
       default: false
     }
@@ -50,6 +56,15 @@ export default {
       } else {
         this.map.pm.disableDraw('Marker')
       }
+    },
+    freehandActive (val) {
+      if (!this.freehand) return
+      if (val) {
+        this.freehand.enable()
+        this.$q.notify({ type: 'info', message: 'Freehand mode: drag to draw, release to finish' })
+      } else {
+        this.freehand.disable()
+      }
     }
   },
   methods: {
@@ -63,14 +78,19 @@ export default {
       this.map.pm.addControls({
         position: 'topright',
         drawPolygon: false,
-        drawPolyline: true,
+        drawPolyline: false,
         drawRectangle: false,
         drawCircle: false,
         drawMarker: true,
         drawCircleMarker: false,
+        drawFreehand: true,
         editMode: true,
         dragMode: true,
         removalMode: true
+      })
+
+      this.freehand = createFreehandLine(this.map, {
+        onFinish: this.handleFreehandFinish
       })
 
       this.map.on('pm:create', async (e) => {
@@ -167,6 +187,37 @@ export default {
         }
       }
     },
+    async handleFreehandFinish (geojson, layer) {
+      try {
+        const lineCenter = turf.center(geojson)
+        const [lng, lat] = lineCenter.geometry.coordinates
+
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`, {
+          headers: { 'User-Agent': 'parkd-app-dev (mhart4040@gmail.com)' }
+        })
+        const data = await res.json()
+        const street = data.address?.road
+        const streetLine = await this.fetchStreetGeometry(street, lat, lng)
+        const bearing = this.getBearing(streetLine)
+        const sideOfStreet = this.sideOfStreetFinder(geojson, streetLine, lat, lng, bearing)
+
+        const buffered = this.drawBufferedShape(geojson, layer)
+
+        this.$emit('shape-drawn', {
+          buffered,
+          address: data.address,
+          streetName: street,
+          streetDirection: this.cardinalDirection(bearing),
+          center: [lng, lat],
+          sideOfStreet,
+          geojson
+        })
+      } catch (err) {
+        console.error('[handleFreehandFinish] error:', err)
+        this.$q.notify({ type: 'negative', message: 'Failed to process freehand line' })
+      }
+    },
+
     sideOfStreetFinder (geojson, streetLine, lat, lng, bearing) {
       try {
         const nearest = turf.nearestPointOnLine(streetLine, geojson)

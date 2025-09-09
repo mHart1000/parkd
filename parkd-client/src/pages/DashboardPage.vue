@@ -19,10 +19,18 @@
             color="primary"
             @click="placingParkingSpot = true"
           />
+          <q-btn
+            :label="freehandMode ? 'Finish Freehand' : 'Draw Street Section'"
+            class="q-mt-md"
+            color="secondary"
+            @click="freehandMode = !freehandMode"
+            :outline="!freehandMode"
+          />
         </q-card-section>
         <q-card-section>
           <LeafletMap
             :placingParkingSpot="placingParkingSpot"
+            :freehand-active="freehandMode"
             @shape-drawn="handleDrawnShape"
             @feature-clicked="handleFeatureClick"
             @parking-spot-placed="placingParkingSpot = false"
@@ -65,7 +73,8 @@ export default {
       sideOfStreet: '',
       geojson: null,
       placingParkingSpot: false,
-      showParkingConflict: false
+      showParkingConflict: false,
+      freehandMode: false
     }
   },
   async mounted () {
