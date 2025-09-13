@@ -8,13 +8,21 @@ class Api::AlertsController < ApplicationController
     now = Time.now.getlocal
     tomorrow = now + 24.hours
 
+    radius_m = 12.0 # was ~6.1m; a bit more tolerant for GPS + drawing error
+
+    # Approach: buffer the spot point (geography) and intersect with section geometry (geography).
     candidate_sections = StreetSection
       .joins(:parking_rules)
       .where(parking_rules: { day_of_week: [now.strftime('%A'), tomorrow.strftime('%A')] })
       .where(
-        "ST_DWithin(street_sections.geometry::geography, ST_GeomFromText(?, 4326)::geography, ?)",
+        <<~SQL.squish,
+          ST_Intersects(
+            street_sections.geometry::geography,
+            ST_Buffer(ST_GeomFromText(?, 4326)::geography, ?)
+          )
+        SQL
         spot.geometry.as_text,
-        6.1 # 20 feet
+        radius_m
       ).distinct
 
       Rails.logger.debug"########### ALERTS DEBUG ##########"

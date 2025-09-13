@@ -74,7 +74,8 @@ export default {
       geojson: null,
       placingParkingSpot: false,
       showParkingConflict: false,
-      freehandMode: false
+      freehandMode: false,
+      sectionId: null
     }
   },
   async mounted () {
@@ -104,6 +105,7 @@ export default {
       this.streetDirection = payload.streetDirection
       this.sideOfStreet = payload.sideOfStreet
       this.geojson = payload.geojson
+      this.sectionId = null
       this.showRulePopup = true
     },
     async handleFeatureClick (feature) {
@@ -123,6 +125,7 @@ export default {
         this.streetDirection = feature.properties?.street_direction || ''
         this.sideOfStreet = feature.properties?.side_of_street || ''
         this.geojson = feature
+        this.sectionId = sectionId
         this.showRulePopup = true
       } catch (err) {
         console.error('[handleFeatureClick] Failed to load rules:', err)
@@ -140,11 +143,9 @@ export default {
         parking_rules_attributes: rules
       }
 
-      const sectionId = this.geojson?.properties?.id
-
       try {
-        if (sectionId) {
-          await this.$api.patch(`/street_sections/${sectionId}`, { street_section: payload })
+        if (this.sectionId) {
+          await this.$api.patch(`/street_sections/${this.sectionId}`, { street_section: payload })
         } else {
           await this.$api.post('/street_sections', { street_section: payload })
         }

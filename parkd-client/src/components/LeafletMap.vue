@@ -187,8 +187,31 @@ export default {
         }
       }
     },
+    snapFreehandToStreetSegment (freehandLine, streetLine) {
+      const coords = turf.getCoords(freehandLine)
+      if (!coords || coords.length < 2) return null
+
+      const start = turf.point(coords[0])
+      const end = turf.point(coords[coords.length - 1])
+
+      const nStart = turf.nearestPointOnLine(streetLine, start)
+      const nEnd = turf.nearestPointOnLine(streetLine, end)
+
+      // slice the street centerline between projected start/end
+      const segment = turf.lineSlice(nStart, nEnd, streetLine)
+
+      // safety: if the slice failed or degenerate, fall back
+      const segCoords = turf.getCoords(segment)
+      if (!segCoords || segCoords.length < 2) return null
+
+      // buffer to create the “fat line” polygon you already expect/sync to backend
+      const buffered = turf.buffer(segment, 1.8, { units: 'meters' })
+
+      return { segment, buffered }
+    },
     async handleFreehandFinish (geojson, layer) {
       try {
+        // center for reverse geocoding
         const lineCenter = turf.center(geojson)
         const [lng, lat] = lineCenter.geometry.coordinates
 
@@ -199,25 +222,57 @@ export default {
         const street = data.address?.road
         const streetLine = await this.fetchStreetGeometry(street, lat, lng)
         const bearing = this.getBearing(streetLine)
-        const sideOfStreet = this.sideOfStreetFinder(geojson, streetLine, lat, lng, bearing)
 
-        const buffered = this.drawBufferedShape(geojson, layer)
+        // NEW: snap to street, buffer the snapped segment
+        const snapped = this.snapFreehandToStreetSegment(geojson, streetLine)
+
+        // draw the result and compute side of street from snapped geometry when available
+        let buffered
+        let sideOfStreet
+        let centerForProps = [lng, lat]
+
+        if (snapped) {
+          // replace drawn line with street-aligned buffered polygon
+          layer.remove()
+          L.geoJSON(snapped.buffered, {
+            style: { color: '#4A90E2', fillColor: '#4A90E2', fillOpacity: 0.4 }
+          }).addTo(this.map)
+
+          // recompute center for better accuracy (use the snapped segment)
+          const snappedCenter = turf.center(snapped.segment)
+          centerForProps = snappedCenter.geometry.coordinates
+
+          // determine side of street from the snapped center
+          sideOfStreet = this.sideOfStreetFinder(
+            turf.point(centerForProps),
+            streetLine,
+            centerForProps[1],
+            centerForProps[0],
+            bearing
+          )
+
+          buffered = snapped.buffered
+        } else {
+          // fallback to your previous behavior if snapping fails
+          const tmpSide = this.sideOfStreetFinder(geojson, streetLine, lat, lng, bearing)
+          sideOfStreet = tmpSide
+          buffered = this.drawBufferedShape(geojson, layer)
+        }
 
         this.$emit('shape-drawn', {
           buffered,
           address: data.address,
           streetName: street,
           streetDirection: this.cardinalDirection(bearing),
-          center: [lng, lat],
+          center: centerForProps,
           sideOfStreet,
-          geojson
+          geojson: buffered // downstream expects a polygon feature; keep it handy
         })
       } catch (err) {
         console.error('[handleFreehandFinish] error:', err)
         this.$q.notify({ type: 'negative', message: 'Failed to process freehand line' })
       }
     },
-
     sideOfStreetFinder (geojson, streetLine, lat, lng, bearing) {
       try {
         const nearest = turf.nearestPointOnLine(streetLine, geojson)
