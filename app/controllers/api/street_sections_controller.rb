@@ -33,11 +33,6 @@ module Api
       if section_params[:geometry].present?
         coords = section_params[:geometry]['coordinates']
         ring_coords = coords.first
-Rails.logger.debug "########## GEOMETRY DEBUG ##########"
-Rails.logger.debug coords.inspect
-Rails.logger.debug coords.first.inspect
-Rails.logger.debug coords.first == coords.first&.dup
-Rails.logger.debug "########## GEOMETRY DEBUG ##########"
 
         # Ensure ring is closed (first and last point are equal)
         if ring_coords.first != ring_coords.last

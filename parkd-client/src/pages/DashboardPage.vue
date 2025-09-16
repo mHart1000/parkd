@@ -68,6 +68,7 @@ export default {
       showRulePopup: false,
       tempRules: [],
       bufferedShape: null,
+      segment: null,
       drawnAddress: null,
       streetDirection: '',
       sideOfStreet: '',
@@ -100,6 +101,7 @@ export default {
     },
     handleDrawnShape (payload) {
       this.bufferedShape = payload.buffered
+      this.segment = payload.segment
       this.drawnAddress = payload.address
       this.center = payload.center
       this.streetDirection = payload.streetDirection

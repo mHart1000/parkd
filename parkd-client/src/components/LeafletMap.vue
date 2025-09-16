@@ -109,7 +109,6 @@ export default {
         const street = data.address?.road
         const streetLine = await this.fetchStreetGeometry(street, lat, lng)
         const bearing = this.getBearing(streetLine)
-        const sideOfStreet = this.sideOfStreetFinder(geojson, streetLine, lat, lng, bearing)
 
         console.log('center', lineCenter)
         console.log('Center coordinates:', lng, lat)
@@ -118,20 +117,58 @@ export default {
         console.log('Street name:', street)
 
         if (geojson.geometry.type === 'Point') {
-          this.saveParkingSpot(geojson, data, sideOfStreet, layer)
-        } else {
-          const buffered = this.drawBufferedShape(geojson, layer)
-
-          this.$emit('shape-drawn', {
-            buffered,
-            address: data.address,
-            streetName: street,
-            streetDirection: this.cardinalDirection(bearing),
-            center: [lng, lat],
-            sideOfStreet,
-            geojson
-          })
+          const side = this.sideOfStreetFinder(geojson, streetLine, lat, lng, bearing)
+          this.saveParkingSpot(geojson, data, side, layer)
+          return
         }
+
+        // For non-point geometry, try to snap freehand to street and buffer
+        const snapped = this.snapFreehandToStreetSegment(geojson, streetLine)
+
+        // Prepare variables used in emitted payload
+        let buffered = null
+        let segment = null
+        let centerForProps = [lng, lat]
+        let sideOfStreet = null
+
+        if (snapped) {
+          // replace drawn line with street-aligned buffered polygon
+          layer.remove()
+          L.geoJSON(snapped.buffered, {
+            style: { color: '#4A90E2', fillColor: '#4A90E2', fillOpacity: 0.4 }
+          }).addTo(this.map)
+
+          // recompute center for better accuracy (use the snapped segment)
+          const snappedCenter = turf.center(snapped.segment)
+          centerForProps = snappedCenter.geometry.coordinates
+
+          // determine side of street from the snapped center
+          sideOfStreet = this.sideOfStreetFinder(
+            turf.point(centerForProps),
+            streetLine,
+            centerForProps[1],
+            centerForProps[0],
+            bearing
+          )
+
+          buffered = snapped.buffered
+          segment = snapped.segment
+        } else {
+          // fallback to buffering the original drawn geometry
+          buffered = this.drawBufferedShape(geojson, layer)
+          sideOfStreet = this.sideOfStreetFinder(geojson, streetLine, lat, lng, bearing)
+        }
+
+        this.$emit('shape-drawn', {
+          buffered,
+          segment,
+          address: data.address,
+          streetName: street,
+          streetDirection: this.cardinalDirection(bearing),
+          center: centerForProps,
+          sideOfStreet,
+          geojson: buffered // downstream expects a polygon feature; keep it handy
+        })
       })
     },
     async getLocation () {
