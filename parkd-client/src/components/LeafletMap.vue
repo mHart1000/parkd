@@ -96,79 +96,37 @@ export default {
       this.map.on('pm:create', async (e) => {
         const layer = e.layer
         const geojson = layer.toGeoJSON()
-        console.log('universal geojson', geojson)
 
-        // gets centerline of actual street at location
-        const lineCenter = turf.center(geojson)
-        const [lng, lat] = lineCenter.geometry.coordinates
-        // gets street/location
-        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`, {
-          headers: { 'User-Agent': 'parkd-app-dev (mhart4040@gmail.com)' }
-        })
-        const data = await res.json()
-        const street = data.address?.road
-        const streetLine = await this.fetchStreetGeometry(street, lat, lng)
-        const bearing = this.getBearing(streetLine)
-
-        console.log('center', lineCenter)
-        console.log('Center coordinates:', lng, lat)
-        console.log('Drawn shape:', geojson)
-        console.log('Street address:', data.address)
-        console.log('Street name:', street)
-
-        if (geojson.geometry.type === 'Point') {
-          const side = this.sideOfStreetFinder(geojson, streetLine, lat, lng, bearing)
-          this.saveParkingSpot(geojson, data, side, layer)
+        if (!geojson?.geometry || geojson.geometry.type !== 'Point') {
+          // For non-points use handleFreehandFinish
+          this.safeRemoveLayer(layer)
           return
         }
 
-        // For non-point geometry, try to snap freehand to street and buffer
-        const snapped = this.snapFreehandToStreetSegment(geojson, streetLine)
+        // For markers: reverse-geocode and save the parking spot.
+        try {
+          const lineCenter = turf.center(geojson)
+          const [lng, lat] = lineCenter.geometry.coordinates
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`, {
+            headers: { 'User-Agent': 'parkd-app-dev (mhart4040@gmail.com)' }
+          })
+          const data = await res.json()
+          const street = data.address?.road
 
-        // Prepare variables used in emitted payload
-        let buffered = null
-        let segment = null
-        let centerForProps = [lng, lat]
-        let sideOfStreet = null
+          let side = null
+          try {
+            const streetLine = await this.fetchStreetGeometry(street, lat, lng)
+            const bearing = this.getBearing(streetLine)
+            side = this.sideOfStreetFinder(geojson, streetLine, lat, lng, bearing)
+          } catch (err) {
+            side = null
+          }
 
-        if (snapped) {
-          // replace drawn line with street-aligned buffered polygon
-          layer.remove()
-          L.geoJSON(snapped.buffered, {
-            style: { color: '#4A90E2', fillColor: '#4A90E2', fillOpacity: 0.4 }
-          }).addTo(this.map)
-
-          // recompute center for better accuracy (use the snapped segment)
-          const snappedCenter = turf.center(snapped.segment)
-          centerForProps = snappedCenter.geometry.coordinates
-
-          // determine side of street from the snapped center
-          sideOfStreet = this.sideOfStreetFinder(
-            turf.point(centerForProps),
-            streetLine,
-            centerForProps[1],
-            centerForProps[0],
-            bearing
-          )
-
-          buffered = snapped.buffered
-          segment = snapped.segment
-        } else {
-          // fallback to buffering the original drawn geometry
-          buffered = this.drawBufferedShape(geojson, layer)
-          sideOfStreet = this.sideOfStreetFinder(geojson, streetLine, lat, lng, bearing)
+          this.saveParkingSpot(geojson, data, side, layer)
+        } catch (err) {
+          console.error('[pm:create] failed to process marker:', err)
+          this.safeRemoveLayer(layer)
         }
-
-        this.$emit('shape-drawn', {
-          buffered,
-          segment,
-          address: data.address,
-          streetName: street,
-          streetDirection: this.cardinalDirection(bearing),
-          center: centerForProps,
-          sideOfStreet,
-          geojson: buffered // downstream expects a polygon feature; keep it handy
-        })
       })
     },
     async getLocation () {
@@ -260,7 +218,7 @@ export default {
         const streetLine = await this.fetchStreetGeometry(street, lat, lng)
         const bearing = this.getBearing(streetLine)
 
-        // NEW: snap to street, buffer the snapped segment
+        // snap to street, buffer the snapped segment
         const snapped = this.snapFreehandToStreetSegment(geojson, streetLine)
 
         // draw the result and compute side of street from snapped geometry when available
@@ -387,6 +345,33 @@ export default {
         }
       }).addTo(this.map)
       return buffered
+    },
+    safeRemoveLayer (layer) {
+      if (!layer || typeof layer.remove !== 'function') return false
+
+      // Prefer checking whether the map actually contains the layer before
+      // attempting removal. This avoids common race conditions where the
+      // layer was already removed by the drawing library.
+      try {
+        if (this.map && typeof this.map.hasLayer === 'function' && !this.map.hasLayer(layer)) {
+          return false
+        }
+
+        layer.remove()
+        return true
+        } catch (err) {
+        // Only emit debug logs in non-production so we don't spam production
+        // logs while still making failures visible during development.
+        if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV !== 'production') {
+          console.debug('[LeafletMap] safeRemoveLayer failed:', err)
+        }
+        // TODO: When preparing for deploy, enable Sentry (see docs/SENTRY.md)
+        // so these failures are captured and monitored in production.
+        // In production you might integrate with an error-tracker here
+        // (e.g. Sentry.captureException(err)) if you want to monitor
+        // unexpected failures.
+        return false
+      }
     },
     populateMap () {
       this.$api.get('/street_sections')
