@@ -17,8 +17,8 @@ export default {
   data () {
     return {
       map: null,
-      lat: 51.505,
-      lng: -0.09,
+      lat: 32.73,
+      lng: -117.16,
       freehand: null,
       carIcon: L.divIcon({
         html: '<i class="fa-solid fa-car-side" style="font-size:24px;color:#0fe004"></i>',
@@ -199,7 +199,7 @@ export default {
       const segCoords = turf.getCoords(segment)
       if (!segCoords || segCoords.length < 2) return null
 
-      // buffer to create the “fat line” polygon you already expect/sync to backend
+      // buffer to create the fat line
       const buffered = turf.buffer(segment, 1.8, { units: 'meters' })
 
       return { segment, buffered }
@@ -221,22 +221,24 @@ export default {
         // snap to street, buffer the snapped segment
         const snapped = this.snapFreehandToStreetSegment(geojson, streetLine)
 
-        // draw the result and compute side of street from snapped geometry when available
+        // draw the result and compute side of street
         let buffered
         let sideOfStreet
         let centerForProps = [lng, lat]
 
         if (snapped) {
-          // replace drawn line with street-aligned buffered polygon
+          // replace drawn line with street-aligned fat line
           layer.remove()
           L.geoJSON(snapped.buffered, {
             style: { color: '#4A90E2', fillColor: '#4A90E2', fillOpacity: 0.4 }
           }).addTo(this.map)
 
-          // recompute center for better accuracy (use the snapped segment)
+          // recompute center from snapped segment
           const snappedCenter = turf.center(snapped.segment)
           centerForProps = snappedCenter.geometry.coordinates
 
+          // FIX ME:
+          // (will be easier after converting to lines, might be able to use old version of sideOfStreetFinder)
           // determine side of street from the snapped center
           sideOfStreet = this.sideOfStreetFinder(
             turf.point(centerForProps),
@@ -248,7 +250,7 @@ export default {
 
           buffered = snapped.buffered
         } else {
-          // fallback to your previous behavior if snapping fails
+          // fallback to  previous behavior
           const tmpSide = this.sideOfStreetFinder(geojson, streetLine, lat, lng, bearing)
           sideOfStreet = tmpSide
           buffered = this.drawBufferedShape(geojson, layer)
@@ -261,7 +263,7 @@ export default {
           streetDirection: this.cardinalDirection(bearing),
           center: centerForProps,
           sideOfStreet,
-          geojson: buffered // downstream expects a polygon feature; keep it handy
+          geojson: buffered // expected to be a polygon
         })
       } catch (err) {
         console.error('[handleFreehandFinish] error:', err)
@@ -272,7 +274,6 @@ export default {
       try {
         const nearest = turf.nearestPointOnLine(streetLine, geojson)
         const [streetLng, streetLat] = nearest.geometry.coordinates
-
         if (bearing <= 20 || bearing >= 160) {
           return lng < streetLng ? 'west side' : 'east side'
         } else if (bearing >= 70 && bearing <= 110) {
@@ -348,10 +349,7 @@ export default {
     },
     safeRemoveLayer (layer) {
       if (!layer || typeof layer.remove !== 'function') return false
-
-      // Prefer checking whether the map actually contains the layer before
-      // attempting removal. This avoids common race conditions where the
-      // layer was already removed by the drawing library.
+      // Check whether the map contains the layer before removal to avoid race conditions with drawing library
       try {
         if (this.map && typeof this.map.hasLayer === 'function' && !this.map.hasLayer(layer)) {
           return false
@@ -359,17 +357,12 @@ export default {
 
         layer.remove()
         return true
-        } catch (err) {
-        // Only emit debug logs in non-production so we don't spam production
-        // logs while still making failures visible during development.
+      } catch (err) {
+        // Only emit debug logs in non-production
         if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV !== 'production') {
           console.debug('[LeafletMap] safeRemoveLayer failed:', err)
         }
-        // TODO: When preparing for deploy, enable Sentry (see docs/SENTRY.md)
-        // so these failures are captured and monitored in production.
-        // In production you might integrate with an error-tracker here
-        // (e.g. Sentry.captureException(err)) if you want to monitor
-        // unexpected failures.
+        // TODO: When preparing for deploy, enable Sentry
         return false
       }
     },
