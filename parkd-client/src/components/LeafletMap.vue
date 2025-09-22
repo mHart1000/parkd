@@ -270,9 +270,9 @@ export default {
         this.$q.notify({ type: 'negative', message: 'Failed to process freehand line' })
       }
     },
-    sideOfStreetFinder (geojson, streetLine, lat, lng, bearing) {
+    sideOfStreetFinder (geojsonCoords, streetLine, lat, lng, bearing) {
       try {
-        const nearest = turf.nearestPointOnLine(streetLine, geojson)
+        const nearest = turf.nearestPointOnLine(streetLine, geojsonCoords)
         const [streetLng, streetLat] = nearest.geometry.coordinates
         if (bearing <= 20 || bearing >= 160) {
           return lng < streetLng ? 'west side' : 'east side'
