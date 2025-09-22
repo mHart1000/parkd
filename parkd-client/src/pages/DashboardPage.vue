@@ -19,10 +19,18 @@
             color="primary"
             @click="placingParkingSpot = true"
           />
+          <q-btn
+            :label="freehandMode ? 'Finish Freehand' : 'Draw Street Section'"
+            class="q-mt-md"
+            color="secondary"
+            @click="freehandMode = !freehandMode"
+            :outline="!freehandMode"
+          />
         </q-card-section>
         <q-card-section>
           <LeafletMap
             :placingParkingSpot="placingParkingSpot"
+            :freehand-active="freehandMode"
             @shape-drawn="handleDrawnShape"
             @feature-clicked="handleFeatureClick"
             @parking-spot-placed="placingParkingSpot = false"
@@ -60,12 +68,15 @@ export default {
       showRulePopup: false,
       tempRules: [],
       bufferedShape: null,
+      segment: null,
       drawnAddress: null,
       streetDirection: '',
       sideOfStreet: '',
       geojson: null,
       placingParkingSpot: false,
-      showParkingConflict: false
+      showParkingConflict: false,
+      freehandMode: false,
+      sectionId: null
     }
   },
   async mounted () {
@@ -90,11 +101,13 @@ export default {
     },
     handleDrawnShape (payload) {
       this.bufferedShape = payload.buffered
+      this.segment = payload.segment
       this.drawnAddress = payload.address
       this.center = payload.center
       this.streetDirection = payload.streetDirection
       this.sideOfStreet = payload.sideOfStreet
       this.geojson = payload.geojson
+      this.sectionId = null
       this.showRulePopup = true
     },
     async handleFeatureClick (feature) {
@@ -114,6 +127,7 @@ export default {
         this.streetDirection = feature.properties?.street_direction || ''
         this.sideOfStreet = feature.properties?.side_of_street || ''
         this.geojson = feature
+        this.sectionId = sectionId
         this.showRulePopup = true
       } catch (err) {
         console.error('[handleFeatureClick] Failed to load rules:', err)
@@ -131,11 +145,9 @@ export default {
         parking_rules_attributes: rules
       }
 
-      const sectionId = this.geojson?.properties?.id
-
       try {
-        if (sectionId) {
-          await this.$api.patch(`/street_sections/${sectionId}`, { street_section: payload })
+        if (this.sectionId) {
+          await this.$api.patch(`/street_sections/${this.sectionId}`, { street_section: payload })
         } else {
           await this.$api.post('/street_sections', { street_section: payload })
         }

@@ -10,18 +10,30 @@ import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css'
 import 'leaflet/dist/leaflet.css'
 import * as turf from '@turf/turf'
 import { markRaw } from 'vue'
+import { createFreehandLine } from '../utils/freehandLine.js'
 
 export default {
   name: 'LeafletMap',
   data () {
     return {
       map: null,
-      lat: 51.505,
-      lng: -0.09
+      lat: 32.73,
+      lng: -117.16,
+      freehand: null,
+      carIcon: L.divIcon({
+        html: '<i class="fa-solid fa-car-side" style="font-size:24px;color:#0fe004"></i>',
+        className: '',
+        iconSize: [24, 24],
+        iconAnchor: [12, 24]
+      })
     }
   },
   props: {
     placingParkingSpot: {
+      type: Boolean,
+      default: false
+    },
+    freehandActive: {
       type: Boolean,
       default: false
     }
@@ -35,10 +47,23 @@ export default {
   watch: {
     placingParkingSpot (val) {
       if (val) {
-        this.map.pm.enableDraw('Marker')
+        this.map.pm.enableDraw('Marker', {
+          markerStyle: {
+            icon: this.carIcon
+          }
+        })
         this.$q.notify({ type: 'info', message: 'Click on the map to place a parking spot' })
       } else {
         this.map.pm.disableDraw('Marker')
+      }
+    },
+    freehandActive (val) {
+      if (!this.freehand) return
+      if (val) {
+        this.freehand.enable()
+        this.$q.notify({ type: 'info', message: 'Freehand mode: drag to draw, release to finish' })
+      } else {
+        this.freehand.disable()
       }
     }
   },
@@ -53,54 +78,54 @@ export default {
       this.map.pm.addControls({
         position: 'topright',
         drawPolygon: false,
-        drawPolyline: true,
+        drawPolyline: false,
         drawRectangle: false,
         drawCircle: false,
         drawMarker: true,
         drawCircleMarker: false,
+        drawFreehand: true,
         editMode: true,
         dragMode: true,
         removalMode: true
       })
 
+      this.freehand = createFreehandLine(this.map, {
+        onFinish: this.handleFreehandFinish
+      })
+
       this.map.on('pm:create', async (e) => {
         const layer = e.layer
         const geojson = layer.toGeoJSON()
-        console.log('universal geojson', geojson)
 
-        // gets centerline of actual street at location
-        const lineCenter = turf.center(geojson)
-        const [lng, lat] = lineCenter.geometry.coordinates
-        // gets street/location
-        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`, {
-          headers: { 'User-Agent': 'parkd-app-dev (mhart4040@gmail.com)' }
-        })
-        const data = await res.json()
-        const street = data.address?.road
-        const streetLine = await this.fetchStreetGeometry(street, lat, lng)
-        const bearing = this.getBearing(streetLine)
-        const sideOfStreet = this.sideOfStreetFinder(geojson, streetLine, lat, lng, bearing)
+        if (!geojson?.geometry || geojson.geometry.type !== 'Point') {
+          // For non-points use handleFreehandFinish
+          this.safeRemoveLayer(layer)
+          return
+        }
 
-        console.log('center', lineCenter)
-        console.log('Center coordinates:', lng, lat)
-        console.log('Drawn shape:', geojson)
-        console.log('Street address:', data.address)
-        console.log('Street name:', street)
-
-        if (geojson.geometry.type === 'Point') {
-          this.saveParkingSpot(geojson, data, sideOfStreet, layer)
-        } else {
-          const buffered = this.drawBufferedShape(geojson, layer)
-
-          this.$emit('shape-drawn', {
-            buffered,
-            address: data.address,
-            streetName: street,
-            streetDirection: this.cardinalDirection(bearing),
-            center: [lng, lat],
-            sideOfStreet,
-            geojson
+        // For markers: reverse-geocode and save the parking spot.
+        try {
+          const lineCenter = turf.center(geojson)
+          const [lng, lat] = lineCenter.geometry.coordinates
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`, {
+            headers: { 'User-Agent': 'parkd-app-dev (mhart4040@gmail.com)' }
           })
+          const data = await res.json()
+          const street = data.address?.road
+
+          let side = null
+          try {
+            const streetLine = await this.fetchStreetGeometry(street, lat, lng)
+            const bearing = this.getBearing(streetLine)
+            side = this.sideOfStreetFinder(geojson, streetLine, lat, lng, bearing)
+          } catch (err) {
+            side = null
+          }
+
+          this.saveParkingSpot(geojson, data, side, layer)
+        } catch (err) {
+          console.error('[pm:create] failed to process marker:', err)
+          this.safeRemoveLayer(layer)
         }
       })
     },
@@ -157,11 +182,98 @@ export default {
         }
       }
     },
-    sideOfStreetFinder (geojson, streetLine, lat, lng, bearing) {
-      try {
-        const nearest = turf.nearestPointOnLine(streetLine, geojson)
-        const [streetLng, streetLat] = nearest.geometry.coordinates
+    snapFreehandToStreetSegment (freehandLine, streetLine) {
+      const coords = turf.getCoords(freehandLine)
+      if (!coords || coords.length < 2) return null
 
+      const start = turf.point(coords[0])
+      const end = turf.point(coords[coords.length - 1])
+
+      const nStart = turf.nearestPointOnLine(streetLine, start)
+      const nEnd = turf.nearestPointOnLine(streetLine, end)
+
+      // slice the street centerline between projected start/end
+      const segment = turf.lineSlice(nStart, nEnd, streetLine)
+
+      // safety: if the slice failed or degenerate, fall back
+      const segCoords = turf.getCoords(segment)
+      if (!segCoords || segCoords.length < 2) return null
+
+      // buffer to create the fat line
+      const buffered = turf.buffer(segment, 1.8, { units: 'meters' })
+
+      return { segment, buffered }
+    },
+    async handleFreehandFinish (geojson, layer) {
+      try {
+        // center for reverse geocoding
+        const lineCenter = turf.center(geojson)
+        const [lng, lat] = lineCenter.geometry.coordinates
+
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`, {
+          headers: { 'User-Agent': 'parkd-app-dev (mhart4040@gmail.com)' }
+        })
+        const data = await res.json()
+        const street = data.address?.road
+        const streetLine = await this.fetchStreetGeometry(street, lat, lng)
+        const bearing = this.getBearing(streetLine)
+
+        // snap to street, buffer the snapped segment
+        const snapped = this.snapFreehandToStreetSegment(geojson, streetLine)
+
+        // draw the result and compute side of street
+        let buffered
+        let sideOfStreet
+        let centerForProps = [lng, lat]
+
+        if (snapped) {
+          // replace drawn line with street-aligned fat line
+          layer.remove()
+          L.geoJSON(snapped.buffered, {
+            style: { color: '#4A90E2', fillColor: '#4A90E2', fillOpacity: 0.4 }
+          }).addTo(this.map)
+
+          // recompute center from snapped segment
+          const snappedCenter = turf.center(snapped.segment)
+          centerForProps = snappedCenter.geometry.coordinates
+
+          // FIX ME:
+          // (will be easier after converting to lines, might be able to use old version of sideOfStreetFinder)
+          // determine side of street from the snapped center
+          sideOfStreet = this.sideOfStreetFinder(
+            turf.point(centerForProps),
+            streetLine,
+            centerForProps[1],
+            centerForProps[0],
+            bearing
+          )
+
+          buffered = snapped.buffered
+        } else {
+          // fallback to  previous behavior
+          const tmpSide = this.sideOfStreetFinder(geojson, streetLine, lat, lng, bearing)
+          sideOfStreet = tmpSide
+          buffered = this.drawBufferedShape(geojson, layer)
+        }
+
+        this.$emit('shape-drawn', {
+          buffered,
+          address: data.address,
+          streetName: street,
+          streetDirection: this.cardinalDirection(bearing),
+          center: centerForProps,
+          sideOfStreet,
+          geojson: buffered // expected to be a polygon
+        })
+      } catch (err) {
+        console.error('[handleFreehandFinish] error:', err)
+        this.$q.notify({ type: 'negative', message: 'Failed to process freehand line' })
+      }
+    },
+    sideOfStreetFinder (geojsonCoords, streetLine, lat, lng, bearing) {
+      try {
+        const nearest = turf.nearestPointOnLine(streetLine, geojsonCoords)
+        const [streetLng, streetLat] = nearest.geometry.coordinates
         if (bearing <= 20 || bearing >= 160) {
           return lng < streetLng ? 'west side' : 'east side'
         } else if (bearing >= 70 && bearing <= 110) {
@@ -202,7 +314,7 @@ export default {
 
         L.geoJSON(geojson, {
           pointToLayer: (geoJsonPoint, latlng) => {
-            return L.marker(latlng, { icon: L.icon({ iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png' }) })
+            return L.marker(latlng, { icon: this.carIcon })
           }
         }).addTo(this.map)
       } catch (err) {
@@ -235,6 +347,25 @@ export default {
       }).addTo(this.map)
       return buffered
     },
+    safeRemoveLayer (layer) {
+      if (!layer || typeof layer.remove !== 'function') return false
+      // Check whether the map contains the layer before removal to avoid race conditions with drawing library
+      try {
+        if (this.map && typeof this.map.hasLayer === 'function' && !this.map.hasLayer(layer)) {
+          return false
+        }
+
+        layer.remove()
+        return true
+      } catch (err) {
+        // Only emit debug logs in non-production
+        if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV !== 'production') {
+          console.debug('[LeafletMap] safeRemoveLayer failed:', err)
+        }
+        // TODO: When preparing for deploy, enable Sentry
+        return false
+      }
+    },
     populateMap () {
       this.$api.get('/street_sections')
         .then(res => {
@@ -266,11 +397,7 @@ export default {
           console.log('lng', lng)
           console.log('spot', spot)
           console.log('spot.coordinates', spot.coordinates)
-          const marker = L.marker([lat, lng], {
-            icon: L.icon({
-              iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png'
-            })
-          })
+          const marker = L.marker([lat, lng], { icon: this.carIcon })
 
           marker.bindPopup('Your active parking spot')
           marker.addTo(this.map)
