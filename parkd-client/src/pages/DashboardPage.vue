@@ -136,9 +136,9 @@ export default {
     },
     async handleSaveRules (rules) {
       const payload = {
-        coordinates: this.bufferedShape,
+        coordinates: this.segment,
         address: this.drawnAddress,
-        geometry: this.bufferedShape.geometry,
+        geometry: this.segment.geometry, // LineString
         street_direction: this.streetDirection,
         side_of_street: this.sideOfStreet,
         center: this.center,

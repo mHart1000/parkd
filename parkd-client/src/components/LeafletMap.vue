@@ -237,8 +237,6 @@ export default {
           const snappedCenter = turf.center(snapped.segment)
           centerForProps = snappedCenter.geometry.coordinates
 
-          // FIX ME:
-          // (will be easier after converting to lines, might be able to use old version of sideOfStreetFinder)
           // determine side of street from the snapped center
           sideOfStreet = this.sideOfStreetFinder(
             turf.point(centerForProps),
@@ -250,20 +248,24 @@ export default {
 
           buffered = snapped.buffered
         } else {
-          // fallback to  previous behavior
+          // fallback to previous behavior
           const tmpSide = this.sideOfStreetFinder(geojson, streetLine, lat, lng, bearing)
           sideOfStreet = tmpSide
           buffered = this.drawBufferedShape(geojson, layer)
         }
 
+        // always ensure we have a LineString to send
+        const safeSegment = snapped?.segment || turf.lineString(turf.getCoords(geojson))
+
         this.$emit('shape-drawn', {
-          buffered,
+          buffered, // polygon for display
+          segment: safeSegment, // always a LineString
           address: data.address,
           streetName: street,
           streetDirection: this.cardinalDirection(bearing),
           center: centerForProps,
           sideOfStreet,
-          geojson: buffered // expected to be a polygon
+          geojson: safeSegment // send LineString to API
         })
       } catch (err) {
         console.error('[handleFreehandFinish] error:', err)
