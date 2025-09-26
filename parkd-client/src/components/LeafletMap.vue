@@ -183,17 +183,28 @@ export default {
       }
     },
     snapFreehandToStreetSegment (freehandLine, streetLine) {
+      console.log('Freehand line:', freehandLine)
+      console.log('Street line:', streetLine)
+      console.log('Freehand coords:', turf.getCoords(freehandLine))
       const coords = turf.getCoords(freehandLine)
       if (!coords || coords.length < 2) return null
 
-      const start = turf.point(coords[0])
-      const end = turf.point(coords[coords.length - 1])
+      const freehandStart = turf.point(coords[0])
+      const freehandEnd = turf.point(coords[coords.length - 1])
 
-      const nStart = turf.nearestPointOnLine(streetLine, start)
-      const nEnd = turf.nearestPointOnLine(streetLine, end)
+      console.log('Start point:', freehandStart)
+      console.log('End point:', freehandEnd)
+
+      const streetStart = turf.nearestPointOnLine(streetLine, freehandStart)
+      const streetEnd = turf.nearestPointOnLine(streetLine, freehandEnd)
+
+      console.log('Nearest start:', streetStart)
+      console.log('Nearest end:', streetEnd)
 
       // slice the street centerline between projected start/end
-      const segment = turf.lineSlice(nStart, nEnd, streetLine)
+      const segment = turf.lineSlice(streetStart, streetEnd, streetLine)
+
+      console.log('Sliced segment:', segment)
 
       // safety: if the slice failed or degenerate, fall back
       const segCoords = turf.getCoords(segment)
