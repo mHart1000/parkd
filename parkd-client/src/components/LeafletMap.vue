@@ -12,6 +12,8 @@ import * as turf from '@turf/turf'
 import { markRaw } from 'vue'
 import { createFreehandLine } from '../utils/freehandLine.js'
 
+const CLIENT_USER_AGENT = import.meta.env.VITE_CLIENT_USER_AGENT
+
 export default {
   name: 'LeafletMap',
   data () {
@@ -108,7 +110,7 @@ export default {
           const lineCenter = turf.center(geojson)
           const [lng, lat] = lineCenter.geometry.coordinates
           const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`, {
-            headers: { 'User-Agent': 'parkd-app-dev (mhart4040@gmail.com)' }
+            headers: { 'User-Agent': CLIENT_USER_AGENT }
           })
           const data = await res.json()
           const street = data.address?.road
@@ -222,7 +224,7 @@ export default {
         const [lng, lat] = lineCenter.geometry.coordinates
 
         const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`, {
-          headers: { 'User-Agent': 'parkd-app-dev (mhart4040@gmail.com)' }
+          headers: { 'User-Agent': CLIENT_USER_AGENT }
         })
         const data = await res.json()
         const street = data.address?.road
