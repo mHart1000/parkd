@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_04_23_093531) do
+ActiveRecord::Schema[7.2].define(version: 2025_09_22_085511) do
   create_schema "topology"
 
   # These are extensions that must be enabled in order to support this database
@@ -54,7 +54,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_04_23_093531) do
     t.jsonb "center"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.geography "geometry", limit: {:srid=>4326, :type=>"st_polygon", :geographic=>true}
+    t.geometry "geometry", limit: {:srid=>4326, :type=>"line_string"}
     t.index ["user_id"], name: "index_street_sections_on_user_id"
   end
 

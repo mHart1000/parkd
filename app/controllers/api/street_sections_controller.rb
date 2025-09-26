@@ -32,20 +32,13 @@ module Api
 
       if section_params[:geometry].present?
         coords = section_params[:geometry]['coordinates']
-        ring_coords = coords.first
 
-        # Ensure ring is closed (first and last point are equal)
-        if ring_coords.first != ring_coords.last
-          ring_coords << ring_coords.first
+        if coords.length < 2
+          return render json: { error: "Invalid line: must have at least 2 points" }, status: :unprocessable_entity
         end
 
-        if ring_coords.length < 4
-          return render json: { error: "Invalid polygon: must have at least 4 points" }, status: :unprocessable_entity
-        end
-
-        ring = factory.linear_ring(ring_coords.map { |lng, lat| factory.point(lng, lat) })
-        polygon = factory.polygon(ring)
-        section_params[:geometry] = polygon
+        line = factory.line_string(coords.map { |lng, lat| factory.point(lng, lat) })
+        section_params[:geometry] = line
       end
 
       section = current_user.street_sections.new(section_params)
