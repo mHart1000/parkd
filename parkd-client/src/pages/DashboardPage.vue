@@ -134,7 +134,7 @@ export default {
         this.$q.notify({ type: 'negative', message: 'Could not load rules for section' })
       }
     },
-    async handleSaveRules (rules) {
+    async handleSaveRules (rule) {
       const payload = {
         coordinates: this.segment,
         address: this.drawnAddress,
@@ -142,7 +142,7 @@ export default {
         street_direction: this.streetDirection,
         side_of_street: this.sideOfStreet,
         center: this.center,
-        parking_rules_attributes: rules
+        parking_rules_attributes: [rule]
       }
 
       try {
