@@ -31,7 +31,7 @@ module Api
       factory = RGeo::Geographic.spherical_factory(srid: 4326)
 
       if section_params[:geometry].present?
-        coords = section_params[:geometry]['coordinates']
+        coords = section_params[:geometry]["coordinates"]
 
         if coords.length < 2
           return render json: { error: "Invalid line: must have at least 2 points" }, status: :unprocessable_entity

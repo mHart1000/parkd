@@ -9,7 +9,7 @@ module Api
 
       if resource.save
         render json: {
-          message: 'User created successfully.',
+          message: "User created successfully.",
           user: {
             id: resource.id,
             email: resource.email,
@@ -26,6 +26,5 @@ module Api
     def sign_up_params
       params.require(:user).permit(:name, :email, :password, :password_confirmation)
     end
-
   end
 end

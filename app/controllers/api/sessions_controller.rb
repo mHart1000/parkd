@@ -8,7 +8,7 @@ module Api
       self.resource = warden.authenticate!(auth_options)
       sign_in(resource_name, resource)
 
-      token = request.env['warden-jwt_auth.token']
+      token = request.env["warden-jwt_auth.token"]
       Rails.logger.info "JWT Token: #{token}"
 
       render json: { user: resource, token: token }, status: :ok
@@ -19,7 +19,7 @@ module Api
     def respond_with(resource, _opts = {})
       render json: {
         user: resource,
-        token: request.env['warden-jwt_auth.token']
+        token: request.env["warden-jwt_auth.token"]
       }, status: :ok
     end
 
@@ -29,7 +29,7 @@ module Api
       if current_user
         head :no_content
       else
-        render json: { error: 'User not logged in' }, status: :unauthorized
+        render json: { error: "User not logged in" }, status: :unauthorized
       end
     end
 
