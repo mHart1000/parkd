@@ -20,11 +20,10 @@
             @click="placingParkingSpot = true"
           />
           <q-btn
-            :label="freehandMode ? 'Finish Freehand' : 'Draw Street Section'"
+            label="Draw Street Section"
             class="q-mt-md"
             color="secondary"
-            @click="freehandMode = !freehandMode"
-            :outline="!freehandMode"
+            @click="startFreehand"
           />
         </q-card-section>
         <q-card-section>
@@ -99,6 +98,9 @@ export default {
       Notify.create({ type: 'positive', message: 'You have been logged out!' })
       this.$router.push('/login')
     },
+    startFreehand () {
+      this.freehandMode = true
+    },
     handleDrawnShape (payload) {
       this.bufferedShape = payload.buffered
       this.segment = payload.segment
@@ -109,6 +111,7 @@ export default {
       this.geojson = payload.geojson
       this.sectionId = null
       this.showRulePopup = true
+      this.freehandMode = false
     },
     async handleFeatureClick (feature) {
       const sectionId = feature.properties?.id
@@ -134,7 +137,7 @@ export default {
         this.$q.notify({ type: 'negative', message: 'Could not load rules for section' })
       }
     },
-    async handleSaveRules (rules) {
+    async handleSaveRules (rule) {
       const payload = {
         coordinates: this.segment,
         address: this.drawnAddress,
@@ -142,7 +145,7 @@ export default {
         street_direction: this.streetDirection,
         side_of_street: this.sideOfStreet,
         center: this.center,
-        parking_rules_attributes: rules
+        parking_rules_attributes: [rule]
       }
 
       try {

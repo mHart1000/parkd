@@ -6,21 +6,7 @@
       </q-card-section>
 
       <q-card-section>
-        <q-list bordered>
-          <q-item v-for="(rule, index) in localRules" :key="index">
-            <q-item-section>
-              {{ formatRule(rule) }}
-            </q-item-section>
-            <q-item-section side>
-              <q-btn dense flat icon="edit" @click="editRule(index)" />
-              <q-btn dense flat icon="delete" color="negative" @click="removeRule(index)" />
-            </q-item-section>
-          </q-item>
-        </q-list>
-
-        <q-separator class="q-my-md" />
-
-        <q-form @submit.prevent="addRule">
+        <q-form>
           <q-select v-model="form.day_of_week" :options="days" label="Day of Week" />
           <q-select v-model="form.ordinal" :options="ordinals" label="Ordinal" multiple use-chips />
           <q-input v-model="form.start_time" label="Start Time" type="time" />
@@ -29,8 +15,6 @@
           <q-select v-model="form.even_odd" :options="['even', 'odd']" label="Even or Odd days of the month" />
           <q-input v-model="form.start_date" label="Start Date" type="date" />
           <q-input v-model="form.end_date" label="End Date" type="date" />
-
-          <q-btn class="q-mt-md" type="submit" label="Add Rule" color="primary" />
         </q-form>
       </q-card-section>
 
@@ -53,7 +37,6 @@ export default {
   data () {
     return {
       show: this.modelValue,
-      localRules: [],
       form: {
         day_of_week: null,
         ordinal: [],
@@ -83,43 +66,9 @@ export default {
     }
   },
   methods: {
-    addRule () {
-      this.localRules.push({ ...this.form })
-      this.resetForm()
-    },
-    editRule (index) {
-      this.form = { ...this.localRules[index] }
-      this.localRules.splice(index, 1)
-    },
-    removeRule (index) {
-      this.localRules.splice(index, 1)
-    },
-    resetForm () {
-      this.form = {
-        day_of_week: null,
-        ordinal: [],
-        start_time: '',
-        end_time: '',
-        day_of_month: null,
-        even_odd: null,
-        start_date: '',
-        end_date: ''
-      }
-    },
     saveRules () {
-      this.$emit('save', this.localRules)
+      this.$emit('save', { ...this.form })
       this.show = false
-    },
-    formatRule (rule) {
-      console.log('local rules: ', this.localRules)
-      console.log('rule: ', rule)
-      const parts = []
-      if (rule.ordinal.length && rule.day_of_week) parts.push(`${rule.ordinal.join(' & ')} ${rule.day_of_week}`)
-      if (rule.day_of_month) parts.push(`on day ${rule.day_of_month}`)
-      if (rule.even_odd) parts.push(`on ${rule.even_odd} days`)
-      if (rule.start_time && rule.end_time) parts.push(`${rule.start_time} to ${rule.end_time}`)
-      if (rule.start_date || rule.end_date) parts.push(`[${rule.start_date || '...'} to ${rule.end_date || '...'}]`)
-      return parts.join(', ')
     }
   }
 }
