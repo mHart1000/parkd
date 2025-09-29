@@ -20,11 +20,10 @@
             @click="placingParkingSpot = true"
           />
           <q-btn
-            :label="freehandMode ? 'Finish Freehand' : 'Draw Street Section'"
+            label="Draw Street Section"
             class="q-mt-md"
             color="secondary"
-            @click="freehandMode = !freehandMode"
-            :outline="!freehandMode"
+            @click="startFreehand"
           />
         </q-card-section>
         <q-card-section>
@@ -99,6 +98,9 @@ export default {
       Notify.create({ type: 'positive', message: 'You have been logged out!' })
       this.$router.push('/login')
     },
+    startFreehand () {
+      this.freehandMode = true
+    },
     handleDrawnShape (payload) {
       this.bufferedShape = payload.buffered
       this.segment = payload.segment
@@ -109,6 +111,7 @@ export default {
       this.geojson = payload.geojson
       this.sectionId = null
       this.showRulePopup = true
+      this.freehandMode = false
     },
     async handleFeatureClick (feature) {
       const sectionId = feature.properties?.id
