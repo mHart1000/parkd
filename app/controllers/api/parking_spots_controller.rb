@@ -2,7 +2,7 @@ class Api::ParkingSpotsController < ApplicationController
   before_action :authenticate_user!
 
   def index
-    if params[:active] == 'true'
+    if params[:active] == "true"
       spot = current_user.parking_spots.find_by(active: true)
       if spot
         render json: spot

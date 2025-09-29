@@ -14,10 +14,10 @@ class ApplicationController < ActionController::API
   end
 
   def set_cors_headers
-    response.set_header('Access-Control-Allow-Origin', 'http://localhost:9000')
-    response.set_header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD')
-    response.set_header('Access-Control-Allow-Headers', 'Origin, Content-Type, Accept, Authorization, Token')
-    response.set_header('Access-Control-Allow-Credentials', 'true')
+    response.set_header("Access-Control-Allow-Origin", "http://localhost:9000")
+    response.set_header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD")
+    response.set_header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, Token")
+    response.set_header("Access-Control-Allow-Credentials", "true")
   end
 
   def handle_standard_error(exception)
@@ -29,6 +29,6 @@ class ApplicationController < ActionController::API
   protected
 
   def configure_permitted_parameters
-    devise_parameter_sanitizer.permit(:sign_in, keys: [:email, :password])
+    devise_parameter_sanitizer.permit(:sign_in, keys: [ :email, :password ])
   end
 end

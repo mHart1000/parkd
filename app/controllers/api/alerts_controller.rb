@@ -34,10 +34,10 @@ class Api::AlertsController < ApplicationController
         rule_end_time = rule.end_time
 
         if rule_day
-          next unless [now.strftime('%A'), tomorrow.strftime('%A')].include?(rule_day)
+          next unless [ now.strftime("%A"), tomorrow.strftime("%A") ].include?(rule_day)
         end
 
-        rule_date = rule_day == now.strftime('%A') ? now.to_date : now.to_date + 1
+        rule_date = rule_day == now.strftime("%A") ? now.to_date : now.to_date + 1
         scheduled_start = Time.local(
           rule_date.year, rule_date.month, rule_date.day,
           rule_start_time.hour, rule_start_time.min, rule_start_time.sec
