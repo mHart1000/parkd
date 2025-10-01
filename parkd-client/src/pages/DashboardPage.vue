@@ -21,12 +21,8 @@
             @click="placingParkingSpot = true"
           />
           <q-btn
-<<<<<<< HEAD
             label="Draw Street Section"
             class="q-mt-md"
-=======
-            :label="freehandMode ? 'Finish Freehand' : 'Draw Street Section'"
->>>>>>> 3bf6e75 (put block select on button bar)
             color="secondary"
             @click="startFreehand"
           />
@@ -170,6 +166,7 @@ export default {
         }
 
         this.showRulePopup = false
+        this.blockSelectActive = false
         this.$q.notify({ type: 'positive', message: 'Rules saved!' })
       } catch (err) {
         console.error('[handleSaveRules] Error saving:', err)
