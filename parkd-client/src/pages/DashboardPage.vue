@@ -2,20 +2,21 @@
   <q-page class="q-pa-lg flex flex-center">
     <div class="dashboard-wrapper">
       <div class="text-h5 q-mb-md">Dashboard</div>
+
       <q-banner
         v-if="showParkingConflict"
-        class="bg-red text-white q-mb-md q-pa-lg "
+        class="bg-red text-white q-mb-md"
         rounded
       >
         <div class="text-h5">
           Warning: Upcoming Parking Violation
         </div>
       </q-banner>
+
       <q-card class="q-pa-md">
-        <q-card-section>
+        <q-card-section class="row q-gutter-sm">
           <q-btn
             label="Add Parking Spot"
-            class="q-mt-md"
             color="primary"
             @click="placingParkingSpot = true"
           />
@@ -25,24 +26,32 @@
             color="secondary"
             @click="startFreehand"
           />
+          <q-btn
+            label="Select Block"
+            color="accent"
+            @click="blockSelectActive = !blockSelectActive"
+            :outline="!blockSelectActive"
+          />
         </q-card-section>
-        <q-card-section>
+
+        <q-card-section class="q-pa-none">
           <LeafletMap
             :placingParkingSpot="placingParkingSpot"
             :freehand-active="freehandMode"
+            :block-select-active="blockSelectActive"
             @shape-drawn="handleDrawnShape"
             @feature-clicked="handleFeatureClick"
             @parking-spot-placed="placingParkingSpot = false"
           />
         </q-card-section>
-        <q-card-section>
-          <RulePopup
-            v-model="showRulePopup"
-            :rules="tempRules"
-            @save="handleSaveRules"
-          />
-        </q-card-section>
       </q-card>
+
+      <RulePopup
+        v-model="showRulePopup"
+        :rules="tempRules"
+        @save="handleSaveRules"
+      />
+
       <q-btn class="q-mt-md" label="Log Out" color="negative" @click="logout" />
     </div>
   </q-page>
@@ -74,6 +83,7 @@ export default {
       geojson: null,
       placingParkingSpot: false,
       showParkingConflict: false,
+      blockSelectActive: false,
       freehandMode: false,
       sectionId: null
     }
@@ -156,6 +166,7 @@ export default {
         }
 
         this.showRulePopup = false
+        this.blockSelectActive = false
         this.$q.notify({ type: 'positive', message: 'Rules saved!' })
       } catch (err) {
         console.error('[handleSaveRules] Error saving:', err)
