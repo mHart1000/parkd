@@ -1,10 +1,45 @@
 <template>
-  <q-page>
-    <q-form @submit="loginUser" class="q-pa-md">
-      <q-input v-model="email" label="Email" type="email" />
-      <q-input v-model="password" label="Password" type="password" />
-      <q-btn label="Login" type="submit" color="primary" />
-    </q-form>
+  <q-page class="row items-center justify-center" style="min-height: 100vh;">
+    <q-card style="max-width:420px; width: 100%;" class="q-pa-md">
+      <q-card-section>
+        <div class="text-h6 q-mb-md">Sign in</div>
+
+        <q-form @submit="loginUser" class="q-gutter-md">
+          <q-input
+            v-model="email"
+            label="Email"
+            type="email"
+            autofocus
+            dense
+            clearable
+          />
+
+          <q-input
+            v-model="password"
+            :type="showPassword ? 'text' : 'password'"
+            label="Password"
+            dense
+            clearable
+          >
+            <template v-slot:append>
+              <q-btn
+                dense
+                flat
+                @click="showPassword = !showPassword"
+                :aria-label="showPassword ? 'Hide password' : 'Show password'"
+              >
+                {{ showPassword ? 'Hide' : 'Show' }}
+              </q-btn>
+            </template>
+          </q-input>
+
+        </q-form>
+      </q-card-section>
+
+      <q-card-actions align="right">
+        <q-btn label="Login" color="primary" @click="loginUser" />
+      </q-card-actions>
+    </q-card>
   </q-page>
 </template>
 
@@ -16,7 +51,8 @@ export default {
   data () {
     return {
       email: '',
-      password: ''
+      password: '',
+      showPassword: false
     }
   },
   methods: {
