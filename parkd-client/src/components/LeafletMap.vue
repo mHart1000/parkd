@@ -51,6 +51,17 @@ export default {
     this.initMap()
     this.getLocation()
     this.populateMap()
+    this._blockClickHandler = async e => {
+      this.candidateLayers = await handleBlockClick(
+        e,
+        this.overpassUrl,
+        this.candidateLayers,
+        this.$q,
+        this.map,
+        this.$emit,
+        updated => { this.candidateLayers = updated }
+      )
+    }
     window.turf = turf // testing only
   },
   watch: {
@@ -78,15 +89,9 @@ export default {
     blockSelectActive (val) {
       if (val) {
         this.$q.notify({ type: 'info', message: 'Block-select mode: click a street to highlight blocks' })
-        this.map.on('click', e => {
-          this.candidateLayers = handleBlockClick(e, this.overpassUrl, this.candidateLayers, this.$q, this.map, this.$emit)
-
-        })
+        this.map.on('click', this._blockClickHandler)
       } else {
-        this.map.off('click',  e => {
-          this.candidateLayers = handleBlockClick(e, this.overpassUrl, this.candidateLayers, this.$q, this.map, this.$emit)
-
-        })
+        this.map.off('click', this._blockClickHandler)
       }
     }
   },
