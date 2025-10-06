@@ -17,6 +17,7 @@
         <q-card-section class="row q-gutter-sm">
           <q-btn
             label="Add Parking Spot"
+            class="q-mt-md"
             color="primary"
             @click="placingParkingSpot = true"
           />
@@ -28,6 +29,7 @@
           />
           <q-btn
             label="Select Block"
+            class="q-mt-md"
             color="accent"
             @click="blockSelectActive = !blockSelectActive"
             :outline="!blockSelectActive"
