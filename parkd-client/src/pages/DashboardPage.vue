@@ -51,6 +51,9 @@
       <RulePopup
         v-model="showRulePopup"
         :rules="tempRules"
+        :street-name="drawnAddress?.road || drawnAddress?.street || ''"
+        :street-direction="streetDirection"
+        :address="drawnAddress?.house_number ? `${drawnAddress.house_number} ${drawnAddress.road || drawnAddress.street || ''}` : ''"
         @save="handleSaveRules"
       />
 
@@ -114,6 +117,7 @@ export default {
       this.freehandMode = true
     },
     handleDrawnShape (payload) {
+      console.log('handleDrawnShape payload:', payload)
       this.bufferedShape = payload.buffered
       this.segment = payload.segment
       this.drawnAddress = payload.address
