@@ -10,8 +10,9 @@ import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css'
 import 'leaflet/dist/leaflet.css'
 import * as turf from '@turf/turf'
 import { markRaw } from 'vue'
-import { createFreehandLine } from '../utils/freehandLine.js'
+import { createFreehandLine } from '../utils/freehandLineDraw.js'
 import { handleBlockClick } from '../utils/blockSelect.js'
+import { handleFreehandFinish } from '../utils/freehandProcessing.js'
 
 const CLIENT_USER_AGENT = import.meta.env.VITE_CLIENT_USER_AGENT
 
@@ -118,7 +119,7 @@ export default {
       })
 
       this.freehand = createFreehandLine(this.map, {
-        onFinish: this.handleFreehandFinish
+        onFinish: (geojson, layer) => handleFreehandFinish(geojson, layer, this.map, this.$emit, this.$q, this.overpassUrl)
       })
 
       this.map.on('pm:create', async (e) => {
@@ -172,170 +173,6 @@ export default {
         console.error('Error getting location:', error)
       }
     },
-    async fetchStreetGeometry (streetName, lat, lng) {
-      const query = `
-        [out:json][timeout:25];
-        way(around:5,${lat},${lng})["highway"];
-        (._;>;);
-        out geom;
-      `
-
-      const response = await fetch(this.overpassUrl, { method: 'POST', body: query })
-      const data = await response.json()
-
-      if (!data.elements || data.elements.length === 0) {
-        throw new Error(`No geometry found for "${streetName}"`)
-      }
-
-      // Pick the nearest single block
-      const nearestWay = data.elements
-        .filter(el => el.type === 'way' && el.geometry)
-        .map(el => {
-          const line = turf.lineString(el.geometry.map(pt => [pt.lon, pt.lat]))
-          const clickPoint = turf.point([lng, lat])
-          return { el, dist: turf.pointToLineDistance(clickPoint, line) }
-        })
-        .sort((a, b) => a.dist - b.dist)[0]?.el
-
-      if (!nearestWay) throw new Error(`No valid block found for "${streetName}"`)
-
-      const coordinates = nearestWay.geometry.map(pt => [pt.lon, pt.lat])
-
-      return {
-        type: 'Feature',
-        geometry: { type: 'LineString', coordinates },
-        properties: { id: nearestWay.id, name: streetName }
-      }
-    },
-    snapFreehandToStreetSegment (freehandLine, streetLine) {
-      console.log('Freehand line:', freehandLine)
-      console.log('Street line:', streetLine)
-      console.log('Freehand coords:', turf.getCoords(freehandLine))
-      const coords = turf.getCoords(freehandLine)
-      if (!coords || coords.length < 2) return null
-
-      const freehandStart = turf.point(coords[0])
-      const freehandEnd = turf.point(coords[coords.length - 1])
-
-      console.log('Start point:', freehandStart)
-      console.log('End point:', freehandEnd)
-
-      const streetStart = turf.nearestPointOnLine(streetLine, freehandStart)
-      const streetEnd = turf.nearestPointOnLine(streetLine, freehandEnd)
-
-      console.log('Nearest start:', streetStart)
-      console.log('Nearest end:', streetEnd)
-
-      // slice the street centerline between projected start/end
-      const segment = turf.lineSlice(streetStart, streetEnd, streetLine)
-
-      console.log('Sliced segment:', segment)
-
-      // safety: if the slice failed or degenerate, fall back
-      const segCoords = turf.getCoords(segment)
-      if (!segCoords || segCoords.length < 2) return null
-
-      // buffer to create the fat line
-      const buffered = turf.buffer(segment, 1.8, { units: 'meters' })
-
-      return { segment, buffered }
-    },
-    async handleFreehandFinish (geojson, layer) {
-      try {
-        // center for reverse geocoding
-        const lineCenter = turf.center(geojson)
-        const [lng, lat] = lineCenter.geometry.coordinates
-
-        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`, {
-          headers: { 'User-Agent': CLIENT_USER_AGENT }
-        })
-        const data = await res.json()
-        const street = data.address?.road
-        const streetLine = await this.fetchStreetGeometry(street, lat, lng)
-        const bearing = this.getBearing(streetLine)
-
-        // snap to street, buffer the snapped segment
-        const snapped = this.snapFreehandToStreetSegment(geojson, streetLine)
-
-        // draw the result and compute side of street
-        let buffered
-        let sideOfStreet
-        let centerForProps = [lng, lat]
-
-        if (snapped) {
-          // replace drawn line with street-aligned fat line
-          layer.remove()
-          L.geoJSON(snapped.buffered, {
-            style: { color: '#4A90E2', fillColor: '#4A90E2', fillOpacity: 0.4 }
-          }).addTo(this.map)
-
-          // recompute center from snapped segment
-          const snappedCenter = turf.center(snapped.segment)
-          centerForProps = snappedCenter.geometry.coordinates
-
-          // determine side of street from the snapped center
-          sideOfStreet = this.sideOfStreetFinder(
-            turf.point(centerForProps),
-            streetLine,
-            centerForProps[1],
-            centerForProps[0],
-            bearing
-          )
-
-          buffered = snapped.buffered
-        } else {
-          // fallback to previous behavior
-          const tmpSide = this.sideOfStreetFinder(geojson, streetLine, lat, lng, bearing)
-          sideOfStreet = tmpSide
-          buffered = this.drawBufferedShape(geojson, layer)
-        }
-
-        // always ensure we have a LineString to send
-        const safeSegment = snapped?.segment || turf.lineString(turf.getCoords(geojson))
-
-        this.$emit('shape-drawn', {
-          buffered, // polygon for display
-          segment: safeSegment, // always a LineString
-          address: data.address,
-          streetName: street,
-          streetDirection: this.cardinalDirection(bearing),
-          center: centerForProps,
-          sideOfStreet,
-          geojson: safeSegment // send LineString to API
-        })
-      } catch (err) {
-        console.error('[handleFreehandFinish] error:', err)
-        this.$q.notify({ type: 'negative', message: 'Failed to process freehand line' })
-      }
-    },
-    sideOfStreetFinder (geojsonCoords, streetLine, lat, lng, bearing) {
-      try {
-        const nearest = turf.nearestPointOnLine(streetLine, geojsonCoords)
-        const [streetLng, streetLat] = nearest.geometry.coordinates
-        if (bearing <= 20 || bearing >= 160) {
-          return lng < streetLng ? 'west side' : 'east side'
-        } else if (bearing >= 70 && bearing <= 110) {
-          return lat < streetLat ? 'south side' : 'north side'
-        } else {
-          return 'diagonal'
-        }
-      } catch (e) {
-        console.warn('Street geometry fetch failed:', e.message)
-        return null
-      }
-    },
-    getBearing (streetLine) {
-      const tmpBearing = turf.bearing(
-        turf.point(streetLine.geometry.coordinates[0]),
-        turf.point(streetLine.geometry.coordinates.at(-1))
-      )
-      return Math.abs(tmpBearing)
-    },
-    cardinalDirection (abs) {
-      if (abs <= 20 || abs >= 160) return 'north-south'
-      if (abs >= 70 && abs <= 110) return 'east-west'
-      return 'diagonal'
-    },
     async saveParkingSpot (geojson, data, sideOfStreet, layer) {
       try {
         await this.$api.post('/parking_spots', {
@@ -362,28 +199,6 @@ export default {
 
       layer.remove() // Remove temporary marker
       this.$emit('parking-spot-placed')
-    },
-    drawBufferedShape (geojson, layer) {
-      // constructs fat line
-      const coords = turf.getCoords(geojson)
-      const lineFeature = turf.lineString(coords)
-      const buffered = turf.buffer(lineFeature, 1.8, { units: 'meters' })
-
-      console.log('Line feature:', lineFeature)
-      console.log('Coordinates:', coords)
-      console.log('Buffered polygon:', buffered)
-
-      // defers removing the line layer to avoid race condition
-      layer.remove()
-      // draws fat line
-      L.geoJSON(buffered, {
-        style: {
-          color: '#4A90E2',
-          fillColor: '#4A90E2',
-          fillOpacity: 0.4
-        }
-      }).addTo(this.map)
-      return buffered
     },
     safeRemoveLayer (layer) {
       if (!layer || typeof layer.remove !== 'function') return false
