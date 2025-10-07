@@ -7,6 +7,7 @@
           <div v-if="streetName"><b>Street:</b> {{ streetName }}</div>
           <div v-if="streetDirection"><b>Direction:</b> {{ streetDirection }}</div>
           <div v-if="address"><b>Address:</b> {{ address }}</div>
+          <div v-if="city"><b>City:</b> {{ city }}</div>
         </div>
       </q-card-section>
 
@@ -46,6 +47,10 @@ export default {
       default: ''
     },
     address: {
+      type: String,
+      default: ''
+    },
+    city: {
       type: String,
       default: ''
     }

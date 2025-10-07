@@ -51,7 +51,8 @@
       <RulePopup
         v-model="showRulePopup"
         :rules="tempRules"
-        :street-name="drawnAddress?.road || drawnAddress?.street || ''"
+        :street-name="drawnAddress?.road || ''"
+        :city="drawnAddress?.city || ''"
         :street-direction="streetDirection"
         :address="drawnAddress?.house_number ? `${drawnAddress.house_number} ${drawnAddress.road || drawnAddress.street || ''}` : ''"
         @save="handleSaveRules"
@@ -130,6 +131,7 @@ export default {
       this.freehandMode = false
     },
     async handleFeatureClick (feature) {
+      console.log('handleFeatureClick feature:', feature)
       const sectionId = feature.properties?.id
       if (!sectionId) return
 
@@ -140,11 +142,21 @@ export default {
         console.log('handleFeatureClick Fetched res:', res)
         console.log('handleFeatureClick Fetched res data:', res.data)
         this.tempRules = res.data
-        this.drawnAddress = feature.properties?.address || {}
-        this.center = feature.properties?.center || null
+
+        const props = feature.properties.address || {}
+        const road = props.road
+        const houseNumber = props.house_number
+        const city = props.city
+        this.drawnAddress = {
+          road,
+          houseNumber,
+          city
+        }
+        console.log('handleFeatureClick drawnAddress:', this.drawnAddress)
+        this.center = props.center || null
         this.bufferedShape = feature
-        this.streetDirection = feature.properties?.street_direction || ''
-        this.sideOfStreet = feature.properties?.side_of_street || ''
+        this.streetDirection = props.street_direction || props.direction || ''
+        this.sideOfStreet = props.side_of_street || ''
         this.geojson = feature
         this.sectionId = sectionId
         this.showRulePopup = true
