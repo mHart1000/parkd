@@ -3,6 +3,11 @@
     <q-card style="min-width: 400px">
       <q-card-section>
         <div class="text-h6">Parking Rules</div>
+        <div v-if="streetName || streetDirection || address" class="q-mt-sm q-mb-sm">
+          <div v-if="streetName"><b>Street:</b> {{ streetName }}</div>
+          <div v-if="streetDirection"><b>Direction:</b> {{ streetDirection }}</div>
+          <div v-if="address"><b>Address:</b> {{ address }}</div>
+        </div>
       </q-card-section>
 
       <q-card-section>
@@ -31,7 +36,19 @@ export default {
   name: 'RulePopup',
   props: {
     modelValue: Boolean,
-    rules: Array
+    rules: Array,
+    streetName: {
+      type: String,
+      default: ''
+    },
+    streetDirection: {
+      type: String,
+      default: ''
+    },
+    address: {
+      type: String,
+      default: ''
+    }
   },
   emits: ['update:modelValue', 'save'],
   data () {

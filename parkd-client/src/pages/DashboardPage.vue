@@ -17,6 +17,7 @@
         <q-card-section class="row q-gutter-sm">
           <q-btn
             label="Add Parking Spot"
+            class="q-mt-md"
             color="primary"
             @click="placingParkingSpot = true"
           />
@@ -28,6 +29,7 @@
           />
           <q-btn
             label="Select Block"
+            class="q-mt-md"
             color="accent"
             @click="blockSelectActive = !blockSelectActive"
             :outline="!blockSelectActive"
@@ -49,6 +51,9 @@
       <RulePopup
         v-model="showRulePopup"
         :rules="tempRules"
+        :street-name="drawnAddress?.road || drawnAddress?.street || ''"
+        :street-direction="streetDirection"
+        :address="drawnAddress?.house_number ? `${drawnAddress.house_number} ${drawnAddress.road || drawnAddress.street || ''}` : ''"
         @save="handleSaveRules"
       />
 
@@ -112,6 +117,7 @@ export default {
       this.freehandMode = true
     },
     handleDrawnShape (payload) {
+      console.log('handleDrawnShape payload:', payload)
       this.bufferedShape = payload.buffered
       this.segment = payload.segment
       this.drawnAddress = payload.address
