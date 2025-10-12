@@ -1,5 +1,6 @@
 import * as turf from '@turf/turf'
 import L from 'leaflet'
+import { cardinalDirection, getBearing } from './freehandProcessing.js'
 
 export async function handleBlockClick (e, overpassUrl, candidateLayers, $q, map, $emit, updateLayers) {
   const { lat, lng } = e.latlng
@@ -24,8 +25,8 @@ export async function handleBlockClick (e, overpassUrl, candidateLayers, $q, map
       style: { color: '#ff6600', weight: 6, opacity: 0.5 }
     }).addTo(map)
 
-    layer.on('click', () => {
-      candidateLayers = confirmBlock(block, candidateLayers, map, $q, $emit)
+    layer.on('click', async () => {
+      candidateLayers = await confirmBlock(block, candidateLayers, map, $q, $emit)
       if (typeof updateLayers === 'function') {
         updateLayers(candidateLayers) // sync Vue's this.candidateLayers
       }
@@ -101,17 +102,38 @@ export function clearCandidateLayers (candidateLayers = [], map) {
   return []
 }
 
-export function confirmBlock (block, candidateLayers, map, $q, $emit) {
+export async function confirmBlock (block, candidateLayers, map, $q, $emit) {
   clearCandidateLayers(candidateLayers, map)
 
   L.geoJSON(block, {
     style: { color: '#4A90E2', weight: 6, opacity: 0.9 }
   }).addTo(map)
 
+  // Compute center and simple direction
+  const center = turf.center(block).geometry.coordinates
+  const absBearing = getBearing(block)
+
+  // Reverse geocode center for address and street name
+  let address = {}
+  try {
+    const [lng, lat] = center
+    const ua = (import.meta && import.meta.env && import.meta.env.VITE_CLIENT_USER_AGENT) || 'parkd-app'
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`, {
+      headers: { 'User-Agent': ua }
+    })
+    const data = await res.json()
+    address = data.address || {}
+  } catch (e) {
+    // ignore, keep empty address
+  }
+
   $emit('shape-drawn', {
     segment: block,
     geojson: block,
-    center: turf.center(block).geometry.coordinates
+    center,
+    address,
+    streetName: address.road || address.street || '',
+    streetDirection: cardinalDirection(absBearing)
   })
   $q.notify({ type: 'positive', message: 'Block selected!' })
 

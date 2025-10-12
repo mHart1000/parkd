@@ -3,7 +3,7 @@
     <q-card style="min-width: 400px">
       <q-card-section>
         <div class="text-h6">Parking Rules</div>
-        <div v-if="streetName || streetDirection || address" class="q-mt-sm q-mb-sm">
+        <div v-if="streetName || streetDirection || address || city" class="q-mt-sm q-mb-sm">
           <div v-if="streetName"><b>Street:</b> {{ streetName }}</div>
           <div v-if="streetDirection"><b>Direction:</b> {{ streetDirection }}</div>
           <div v-if="address"><b>Address:</b> {{ address }}</div>

@@ -131,7 +131,8 @@ export default {
       this.freehandMode = false
     },
     async handleFeatureClick (feature) {
-      console.log('handleFeatureClick feature:', feature)
+      // Only handle existing sections. New selections from block-select
+      // already emit 'shape-drawn' with full payload and are handled by handleDrawnShape.
       const sectionId = feature.properties?.id
       if (!sectionId) return
 
@@ -139,23 +140,13 @@ export default {
         const res = await this.$api.get('/parking_rules', {
           params: { street_section_id: sectionId }
         })
-        console.log('handleFeatureClick Fetched res:', res)
-        console.log('handleFeatureClick Fetched res data:', res.data)
         this.tempRules = res.data
 
-        const props = feature.properties.address || {}
-        const road = props.road
-        const houseNumber = props.house_number
-        const city = props.city
-        this.drawnAddress = {
-          road,
-          houseNumber,
-          city
-        }
-        console.log('handleFeatureClick drawnAddress:', this.drawnAddress)
+        const props = feature.properties || {}
+        this.drawnAddress = props.address || {}
         this.center = props.center || null
         this.bufferedShape = feature
-        this.streetDirection = props.street_direction || props.direction || ''
+        this.streetDirection = props.street_direction || ''
         this.sideOfStreet = props.side_of_street || ''
         this.geojson = feature
         this.sectionId = sectionId
