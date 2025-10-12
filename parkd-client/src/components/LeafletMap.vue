@@ -1,4 +1,5 @@
 <template>
+  {{ address }}
   <div id="map" style="width: 500px; height: 400px;"></div>
 </template>
 
@@ -26,6 +27,7 @@ export default {
       freehand: null,
       overpassUrl: 'https://overpass-api.de/api/interpreter',
       candidateLayers: [],
+      address: '',
       carIcon: L.divIcon({
         html: '<i class="fa-solid fa-car-side" style="font-size:24px;color:#0fe004"></i>',
         className: '',
@@ -251,7 +253,7 @@ export default {
           console.log('spot', spot)
           console.log('spot.coordinates', spot.coordinates)
           const marker = L.marker([lat, lng], { icon: this.carIcon })
-
+          this.address = `Parked: ${spot.address.house_number} ${spot.address.road}, ${spot.address.city}`
           marker.bindPopup('Your active parking spot')
           marker.addTo(this.map)
         })
