@@ -12,7 +12,7 @@ import * as turf from '@turf/turf'
 import { markRaw } from 'vue'
 import { createFreehandLine } from '../utils/freehandLineDraw.js'
 import { handleBlockClick } from '../utils/blockSelect.js'
-import { handleFreehandFinish } from '../utils/freehandProcessing.js'
+import { handleFreehandFinish, drawBufferedShape } from '../utils/freehandProcessing.js'
 
 const CLIENT_USER_AGENT = import.meta.env.VITE_CLIENT_USER_AGENT
 
@@ -237,18 +237,19 @@ export default {
           console.log('res.data', res.data)
           const featureCollection = res.data
           L.geoJSON(featureCollection, {
-            onEachFeature: (feature, layer) => {
-              layer.on('click', () => {
+            onEachFeature: (feature) => {
+              drawBufferedShape(feature.geometry, null, this.map)
+
+              this.map.on('click', (e) => {
                 if (this.placingParkingSpot) return
                 this.$emit('feature-clicked', feature)
               })
             }
-          }).addTo(this.map)
+          })
         })
         .catch(err => {
           console.error('[populateMap] Failed to load street sections:', err)
         })
-
       this.$api.get('/parking_spots', {
         params: { active: true }
       })

@@ -165,7 +165,6 @@ export function cardinalDirection (abs) {
   return 'diagonal'
 }
 export function drawBufferedShape (geojson, layer, map) {
-  // constructs fat line
   const coords = turf.getCoords(geojson)
   const lineFeature = turf.lineString(coords)
   const buffered = turf.buffer(lineFeature, 1.8, { units: 'meters' })
@@ -174,9 +173,8 @@ export function drawBufferedShape (geojson, layer, map) {
   console.log('Coordinates:', coords)
   console.log('Buffered polygon:', buffered)
 
-  // defers removing the line layer to avoid race condition
-  layer.remove()
-  // draws fat line
+  if (layer && typeof layer.remove === 'function') layer.remove()
+
   L.geoJSON(buffered, {
     style: {
       color: '#4A90E2',
