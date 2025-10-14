@@ -85,6 +85,7 @@ export default {
         if (newRules && newRules.length > 0) {
           const r = newRules[0]
           this.form = {
+            id: r.id,
             day_of_week: r.day_of_week,
             ordinal: r.ordinal || [],
             start_time: r.start_time ? r.start_time.slice(11, 16) : '',

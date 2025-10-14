@@ -171,20 +171,21 @@ export default {
       }
     },
     async handleSaveRules (rule) {
-      const payload = {
-        coordinates: this.segment,
-        address: this.drawnAddress,
-        geometry: this.segment.geometry, // LineString
-        street_direction: this.streetDirection,
-        side_of_street: this.sideOfStreet,
-        center: this.center,
-        parking_rules_attributes: [rule]
-      }
-
       try {
-        if (this.sectionId) {
-          await this.$api.patch(`/street_sections/${this.sectionId}`, { street_section: payload })
+        if (this.sectionId && rule.id) {
+          // Editing an existing rule only
+          await this.$api.patch(`/parking_rules/${rule.id}`, { parking_rule: rule })
         } else {
+          // Creating a new street section + its first rule
+          const payload = {
+            coordinates: this.segment,
+            address: this.drawnAddress,
+            geometry: this.segment?.geometry,
+            street_direction: this.streetDirection,
+            side_of_street: this.sideOfStreet,
+            center: this.center,
+            parking_rules_attributes: [rule]
+          }
           await this.$api.post('/street_sections', { street_section: payload })
         }
 
