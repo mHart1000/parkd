@@ -200,6 +200,7 @@ export default {
       }
 
       layer.remove() // Remove temporary marker
+      this.$emit('parking-address', data.address)
       this.$emit('parking-spot-placed')
     },
     safeRemoveLayer (layer) {

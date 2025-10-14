@@ -1,8 +1,6 @@
 <template>
   <q-page class="q-pa-lg flex flex-center">
     <div class="dashboard-wrapper">
-      <div class="text-h5 q-mb-md">Dashboard</div>
-
       <q-banner
         v-if="showParkingConflict"
         class="bg-red text-white q-mb-md"
