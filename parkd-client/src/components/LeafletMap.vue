@@ -28,6 +28,7 @@ export default {
       overpassUrl: 'https://overpass-api.de/api/interpreter',
       candidateLayers: [],
       address: '',
+      currentParkingSpot: null,
       carIcon: L.divIcon({
         html: '<i class="fa-solid fa-car-side" style="font-size:24px;color:#0fe004"></i>',
         className: '',
@@ -189,11 +190,14 @@ export default {
 
         this.$q.notify({ type: 'positive', message: 'Parking spot saved!' })
 
-        L.geoJSON(geojson, {
+        const marker = L.geoJSON(geojson, {
           pointToLayer: (geoJsonPoint, latlng) => {
             return L.marker(latlng, { icon: this.carIcon })
           }
-        }).addTo(this.map)
+        })
+        this.safeRemoveLayer(this.currentParkingSpot)
+        this.currentParkingSpot = marker
+        marker.addTo(this.map)
       } catch (err) {
         console.error('[Save Parking Spot] error:', err)
         this.$q.notify({ type: 'negative', message: 'Failed to save parking spot' })
@@ -258,6 +262,7 @@ export default {
           const marker = L.marker([lat, lng], { icon: this.carIcon })
           marker.bindPopup('Your active parking spot')
           marker.addTo(this.map)
+          this.currentParkingSpot = marker
         })
         .catch(err => {
           console.error('[populateMap] Failed to load parking spot:', err)
