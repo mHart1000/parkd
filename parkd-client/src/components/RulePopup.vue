@@ -3,6 +3,12 @@
     <q-card style="min-width: 400px">
       <q-card-section>
         <div class="text-h6">Parking Rules</div>
+        <div v-if="streetName || streetDirection || address || city" class="q-mt-sm q-mb-sm">
+          <div v-if="streetName"><b>Street:</b> {{ streetName }}</div>
+          <div v-if="streetDirection"><b>Direction:</b> {{ streetDirection }}</div>
+          <div v-if="address"><b>Address:</b> {{ address }}</div>
+          <div v-if="city"><b>City:</b> {{ city }}</div>
+        </div>
       </q-card-section>
 
       <q-card-section>
@@ -31,7 +37,23 @@ export default {
   name: 'RulePopup',
   props: {
     modelValue: Boolean,
-    rules: Array
+    rules: Array,
+    streetName: {
+      type: String,
+      default: ''
+    },
+    streetDirection: {
+      type: String,
+      default: ''
+    },
+    address: {
+      type: String,
+      default: ''
+    },
+    city: {
+      type: String,
+      default: ''
+    }
   },
   emits: ['update:modelValue', 'save'],
   data () {
@@ -60,7 +82,20 @@ export default {
     },
     rules: {
       handler (newRules) {
-        this.localRules = [...newRules]
+        if (newRules && newRules.length > 0) {
+          const r = newRules[0]
+          this.form = {
+            id: r.id,
+            day_of_week: r.day_of_week,
+            ordinal: r.ordinal || [],
+            start_time: r.start_time ? r.start_time.slice(11, 16) : '',
+            end_time: r.end_time ? r.end_time.slice(11, 16) : '',
+            day_of_month: r.day_of_month,
+            even_odd: r.even_odd,
+            start_date: r.start_date ? r.start_date.slice(0, 10) : '',
+            end_date: r.end_date ? r.end_date.slice(0, 10) : ''
+          }
+        }
       },
       immediate: true
     }

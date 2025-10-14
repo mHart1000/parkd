@@ -1,8 +1,6 @@
 <template>
   <q-page class="q-pa-lg flex flex-center">
     <div class="dashboard-wrapper">
-      <div class="text-h5 q-mb-md">Dashboard</div>
-
       <q-banner
         v-if="showParkingConflict"
         class="bg-red text-white q-mb-md"
@@ -14,9 +12,19 @@
       </q-banner>
 
       <q-card class="q-pa-md">
+        <q-card-section>
+          <div v-if="road || city" class="q-mb-md">
+            <div v-if="road">
+              <div class="text-h6">Parked At:</div>
+              <div>{{ house_number ? house_number + ' ' : '' }}{{ road }}</div>
+              <div v-if="city">{{ city }}</div>
+            </div>
+          </div>
+        </q-card-section>
         <q-card-section class="row q-gutter-sm">
           <q-btn
             label="Add Parking Spot"
+            class="q-mt-md"
             color="primary"
             @click="placingParkingSpot = true"
           />
@@ -28,6 +36,7 @@
           />
           <q-btn
             label="Select Block"
+            class="q-mt-md"
             color="accent"
             @click="blockSelectActive = !blockSelectActive"
             :outline="!blockSelectActive"
@@ -42,6 +51,7 @@
             @shape-drawn="handleDrawnShape"
             @feature-clicked="handleFeatureClick"
             @parking-spot-placed="placingParkingSpot = false"
+            @parking-address="populateParkingAddress"
           />
         </q-card-section>
       </q-card>
@@ -49,6 +59,10 @@
       <RulePopup
         v-model="showRulePopup"
         :rules="tempRules"
+        :street-name="drawnAddress?.road || ''"
+        :city="drawnAddress?.city || ''"
+        :street-direction="streetDirection"
+        :address="drawnAddress?.house_number ? `${drawnAddress.house_number} ${drawnAddress.road || drawnAddress.street || ''}` : ''"
         @save="handleSaveRules"
       />
 
@@ -85,7 +99,10 @@ export default {
       showParkingConflict: false,
       blockSelectActive: false,
       freehandMode: false,
-      sectionId: null
+      sectionId: null,
+      house_number: null,
+      road: null,
+      city: null
     }
   },
   async mounted () {
@@ -112,6 +129,7 @@ export default {
       this.freehandMode = true
     },
     handleDrawnShape (payload) {
+      console.log('handleDrawnShape payload:', payload)
       this.bufferedShape = payload.buffered
       this.segment = payload.segment
       this.drawnAddress = payload.address
@@ -123,6 +141,11 @@ export default {
       this.showRulePopup = true
       this.freehandMode = false
     },
+    populateParkingAddress (addressData) {
+      this.house_number = addressData.house_number || null
+      this.road = addressData.road || null
+      this.city = addressData.city || null
+    },
     async handleFeatureClick (feature) {
       const sectionId = feature.properties?.id
       if (!sectionId) return
@@ -131,14 +154,14 @@ export default {
         const res = await this.$api.get('/parking_rules', {
           params: { street_section_id: sectionId }
         })
-        console.log('handleFeatureClick Fetched res:', res)
-        console.log('handleFeatureClick Fetched res data:', res.data)
         this.tempRules = res.data
-        this.drawnAddress = feature.properties?.address || {}
-        this.center = feature.properties?.center || null
+
+        const props = feature.properties || {}
+        this.drawnAddress = props.address || {}
+        this.center = props.center || null
         this.bufferedShape = feature
-        this.streetDirection = feature.properties?.street_direction || ''
-        this.sideOfStreet = feature.properties?.side_of_street || ''
+        this.streetDirection = props.street_direction || ''
+        this.sideOfStreet = props.side_of_street || ''
         this.geojson = feature
         this.sectionId = sectionId
         this.showRulePopup = true
@@ -148,20 +171,21 @@ export default {
       }
     },
     async handleSaveRules (rule) {
-      const payload = {
-        coordinates: this.segment,
-        address: this.drawnAddress,
-        geometry: this.segment.geometry, // LineString
-        street_direction: this.streetDirection,
-        side_of_street: this.sideOfStreet,
-        center: this.center,
-        parking_rules_attributes: [rule]
-      }
-
       try {
-        if (this.sectionId) {
-          await this.$api.patch(`/street_sections/${this.sectionId}`, { street_section: payload })
+        if (this.sectionId && rule.id) {
+          // Editing an existing rule only
+          await this.$api.patch(`/parking_rules/${rule.id}`, { parking_rule: rule })
         } else {
+          // Creating a new street section + its first rule
+          const payload = {
+            coordinates: this.segment,
+            address: this.drawnAddress,
+            geometry: this.segment?.geometry,
+            street_direction: this.streetDirection,
+            side_of_street: this.sideOfStreet,
+            center: this.center,
+            parking_rules_attributes: [rule]
+          }
           await this.$api.post('/street_sections', { street_section: payload })
         }
 
