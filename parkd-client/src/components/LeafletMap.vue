@@ -1,5 +1,4 @@
 <template>
-  {{ address }}
   <div id="map" style="width: 500px; height: 400px;"></div>
 </template>
 
@@ -19,6 +18,12 @@ const CLIENT_USER_AGENT = import.meta.env.VITE_CLIENT_USER_AGENT
 
 export default {
   name: 'LeafletMap',
+  emits: [
+    'shape-drawn',
+    'feature-clicked',
+    'parking-spot-placed',
+    'parking-address'
+  ],
   data () {
     return {
       map: null,
@@ -27,7 +32,6 @@ export default {
       freehand: null,
       overpassUrl: 'https://overpass-api.de/api/interpreter',
       candidateLayers: [],
-      address: '',
       currentParkingSpot: null,
       carIcon: L.divIcon({
         html: '<i class="fa-solid fa-car-side" style="font-size:24px;color:#0fe004"></i>',
