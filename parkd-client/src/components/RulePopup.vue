@@ -82,7 +82,19 @@ export default {
     },
     rules: {
       handler (newRules) {
-        this.localRules = [...newRules]
+        if (newRules && newRules.length > 0) {
+          const r = newRules[0]
+          this.form = {
+            day_of_week: r.day_of_week,
+            ordinal: r.ordinal || [],
+            start_time: r.start_time ? r.start_time.slice(11, 16) : '',
+            end_time: r.end_time ? r.end_time.slice(11, 16) : '',
+            day_of_month: r.day_of_month,
+            even_odd: r.even_odd,
+            start_date: r.start_date ? r.start_date.slice(0, 10) : '',
+            end_date: r.end_date ? r.end_date.slice(0, 10) : ''
+          }
+        }
       },
       immediate: true
     }
