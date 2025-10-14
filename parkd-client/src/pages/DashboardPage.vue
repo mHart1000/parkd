@@ -14,6 +14,15 @@
       </q-banner>
 
       <q-card class="q-pa-md">
+        <q-card-section>
+          <div v-if="road || city" class="q-mb-md">
+            <div v-if="road">
+              <div class="text-h6">Parked At:</div>
+              <div>{{ house_number ? house_number + ' ' : '' }}{{ road }}</div>
+              <div v-if="city">{{ city }}</div>
+            </div>
+          </div>
+        </q-card-section>
         <q-card-section class="row q-gutter-sm">
           <q-btn
             label="Add Parking Spot"
@@ -44,6 +53,7 @@
             @shape-drawn="handleDrawnShape"
             @feature-clicked="handleFeatureClick"
             @parking-spot-placed="placingParkingSpot = false"
+            @parking-address="populateParkingAddress"
           />
         </q-card-section>
       </q-card>
@@ -91,7 +101,10 @@ export default {
       showParkingConflict: false,
       blockSelectActive: false,
       freehandMode: false,
-      sectionId: null
+      sectionId: null,
+      house_number: null,
+      road: null,
+      city: null
     }
   },
   async mounted () {
@@ -130,9 +143,12 @@ export default {
       this.showRulePopup = true
       this.freehandMode = false
     },
+    populateParkingAddress (addressData) {
+      this.house_number = addressData.house_number || null
+      this.road = addressData.road || null
+      this.city = addressData.city || null
+    },
     async handleFeatureClick (feature) {
-      // Only handle existing sections. New selections from block-select
-      // already emit 'shape-drawn' with full payload and are handled by handleDrawnShape.
       const sectionId = feature.properties?.id
       if (!sectionId) return
 

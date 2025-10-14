@@ -252,8 +252,9 @@ export default {
           console.log('lng', lng)
           console.log('spot', spot)
           console.log('spot.coordinates', spot.coordinates)
+          this.addressData = { house_number: spot.address.house_number, road: spot.address.road, city: spot.address.city }
+          this.$emit('parking-address', this.addressData)
           const marker = L.marker([lat, lng], { icon: this.carIcon })
-          this.address = `Parked: ${spot.address.house_number} ${spot.address.road}, ${spot.address.city}`
           marker.bindPopup('Your active parking spot')
           marker.addTo(this.map)
         })
