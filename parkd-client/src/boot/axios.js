@@ -2,7 +2,7 @@ import { boot } from 'quasar/wrappers'
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: 'http://localhost:3000/api'
+  baseURL: 'http://192.168.0.241/api'
 })
 
 api.interceptors.request.use(config => {
