@@ -5,7 +5,7 @@ Rails.application.routes.draw do
   }
 
   namespace :api do
-    resources :users, only: [ :index, :show, :create, :update, :destroy ]
+    resource :user, only: [ :show, :update ]
     resources :street_sections, only: [ :index, :create, :show, :update, :destroy ]
     resources :parking_rules, only: [ :index, :create, :show, :update, :destroy ]
     resources :parking_spots, only: [ :index, :create, :show, :update, :destroy ]

@@ -49,3 +49,5 @@ gem "devise-jwt"
 gem "rgeo"
 gem "rgeo-geojson"
 gem "activerecord-postgis-adapter"
+
+gem "active_model_serializers", "~> 0.10.15"

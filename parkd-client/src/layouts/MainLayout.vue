@@ -28,7 +28,7 @@
         <q-item-label
           header
         >
-          Essential Links
+          Menu
         </q-item-label>
 
         <EssentialLink
@@ -36,6 +36,18 @@
           :key="link.title"
           v-bind="link"
         />
+
+        <q-separator class="q-my-md" />
+
+        <q-item clickable @click="logout">
+          <q-item-section avatar>
+            <q-icon name="logout" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Sign Out</q-item-label>
+          </q-item-section>
+        </q-item>
+
       </q-list>
     </q-drawer>
 
@@ -47,50 +59,23 @@
 
 <script>
 import { defineComponent, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useQuasar } from 'quasar'
+import { api } from 'src/boot/axios'
 import EssentialLink from 'components/EssentialLink.vue'
 
 const linksList = [
   {
-    title: 'Docs',
-    caption: 'quasar.dev',
-    icon: 'school',
-    link: 'https://quasar.dev'
-  },
-  {
-    title: 'Github',
-    caption: 'github.com/quasarframework',
-    icon: 'code',
-    link: 'https://github.com/quasarframework'
-  },
-  {
-    title: 'Discord Chat Channel',
-    caption: 'chat.quasar.dev',
-    icon: 'chat',
-    link: 'https://chat.quasar.dev'
-  },
-  {
-    title: 'Forum',
-    caption: 'forum.quasar.dev',
-    icon: 'record_voice_over',
-    link: 'https://forum.quasar.dev'
-  },
-  {
-    title: 'Twitter',
-    caption: '@quasarframework',
-    icon: 'rss_feed',
-    link: 'https://twitter.quasar.dev'
-  },
-  {
-    title: 'Facebook',
-    caption: '@QuasarFramework',
+    title: 'Dashboard',
+    caption: 'Map',
     icon: 'public',
-    link: 'https://facebook.quasar.dev'
+    link: '/dashboard'
   },
   {
-    title: 'Quasar Awesome',
-    caption: 'Community Quasar projects',
-    icon: 'favorite',
-    link: 'https://awesome.quasar.dev'
+    title: 'Profile',
+    caption: 'Settings & User Data',
+    icon: 'record_voice_over',
+    link: '/profile'
   }
 ]
 
@@ -103,13 +88,23 @@ export default defineComponent({
 
   setup () {
     const leftDrawerOpen = ref(false)
+    const router = useRouter()
+    const $q = useQuasar()
+
+    const logout = () => {
+      localStorage.removeItem('token')
+      api.defaults.headers.common.Authorization = ''
+      $q.notify({ type: 'positive', message: 'You have been logged out!' })
+      router.push('/login')
+    }
 
     return {
       essentialLinks: linksList,
       leftDrawerOpen,
       toggleLeftDrawer () {
         leftDrawerOpen.value = !leftDrawerOpen.value
-      }
+      },
+      logout
     }
   }
 })
