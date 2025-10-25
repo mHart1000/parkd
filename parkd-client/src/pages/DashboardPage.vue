@@ -66,13 +66,11 @@
         @save="handleSaveRules"
       />
 
-      <q-btn class="q-mt-md" label="Log Out" color="negative" @click="logout" />
     </div>
   </q-page>
 </template>
 
 <script>
-import { Notify } from 'quasar'
 import LeafletMap from 'components/LeafletMap.vue'
 import RulePopup from 'components/RulePopup.vue'
 
@@ -114,17 +112,6 @@ export default {
     }
   },
   methods: {
-    logout () {
-      // Clear JWT token from localStorage
-      localStorage.removeItem('token')
-
-      // Optionally remove Authorization header from Axios
-      this.$api.defaults.headers.common.Authorization = ''
-
-      // Notify user and redirect to login
-      Notify.create({ type: 'positive', message: 'You have been logged out!' })
-      this.$router.push('/login')
-    },
     startFreehand () {
       this.freehandMode = true
     },

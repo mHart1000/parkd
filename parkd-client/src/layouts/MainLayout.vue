@@ -36,6 +36,18 @@
           :key="link.title"
           v-bind="link"
         />
+
+        <q-separator class="q-my-md" />
+
+        <q-item clickable @click="logout">
+          <q-item-section avatar>
+            <q-icon name="logout" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Sign Out</q-item-label>
+          </q-item-section>
+        </q-item>
+
       </q-list>
     </q-drawer>
 
@@ -47,6 +59,9 @@
 
 <script>
 import { defineComponent, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useQuasar } from 'quasar'
+import { api } from 'src/boot/axios'
 import EssentialLink from 'components/EssentialLink.vue'
 
 const linksList = [
@@ -73,13 +88,23 @@ export default defineComponent({
 
   setup () {
     const leftDrawerOpen = ref(false)
+    const router = useRouter()
+    const $q = useQuasar()
+
+    const logout = () => {
+      localStorage.removeItem('token')
+      api.defaults.headers.common.Authorization = ''
+      $q.notify({ type: 'positive', message: 'You have been logged out!' })
+      router.push('/login')
+    }
 
     return {
       essentialLinks: linksList,
       leftDrawerOpen,
       toggleLeftDrawer () {
         leftDrawerOpen.value = !leftDrawerOpen.value
-      }
+      },
+      logout
     }
   }
 })
