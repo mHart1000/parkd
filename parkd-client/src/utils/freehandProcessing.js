@@ -10,10 +10,12 @@ export async function handleFreehandFinish (geojson, layer, map, $emit, $q, over
       headers: { 'User-Agent': import.meta.env.VITE_CLIENT_USER_AGENT }
     })
     const data = await res.json()
+    console.log('nominatim data:', data)
     const street = data.address?.road
     const streetLine = await fetchStreetGeometry(street, lat, lng, overpassUrl)
     const bearing = getBearing(streetLine)
-
+    console.log('Street line geometry:', streetLine)
+    console.log('Bearing:', bearing)
     // snap to street, buffer the snapped segment
     const snapped = snapFreehandToStreetSegment(geojson, streetLine)
 
@@ -78,7 +80,7 @@ export async function fetchStreetGeometry (streetName, lat, lng, overpassUrl = '
 
   const response = await fetch(overpassUrl, { method: 'POST', body: query })
   const data = await response.json()
-
+  console.log('Overpass data:', data)
   if (!data.elements || data.elements.length === 0) {
     throw new Error(`No geometry found for "${streetName}"`)
   }

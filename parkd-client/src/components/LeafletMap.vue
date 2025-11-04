@@ -53,6 +53,10 @@ export default {
     blockSelectActive: {
       type: Boolean,
       default: false
+    },
+    vertexModeActive: {
+      type: Boolean,
+      default: false
     }
   },
   mounted () {
@@ -101,6 +105,17 @@ export default {
       } else {
         this.map.off('click', this._blockClickHandler)
       }
+    },
+    vertexModeActive (val) {
+      if (val) {
+        this.$q.notify({ type: 'info', message: 'Vertex mode: click to add points, double-click to finish' })
+        this.map.pm.enableDraw('Line', {
+          templineStyle: { color: 'blue' },
+          hintlineStyle: { color: 'blue', dashArray: [5, 5] }
+        })
+      } else {
+        this.map.pm.disableDraw('Line')
+      }
     }
   },
   methods: {
@@ -127,6 +142,26 @@ export default {
 
       this.freehand = createFreehandLine(this.map, {
         onFinish: (geojson, layer) => handleFreehandFinish(geojson, layer, this.map, this.$emit, this.$q, this.overpassUrl)
+      })
+
+      // Handle vertex drawing (fires only when user finishes the line)
+      this.map.on('pm:drawend', async (e) => {
+        if (e.shape !== 'Line') return
+
+        const layer = e.workingLayer || e.layer
+        if (!layer) return
+
+        const geojson = layer.toGeoJSON()
+        const coords = geojson.geometry.coordinates || []
+        if (coords.length < 2) {
+          this.$q.notify({ type: 'warning', message: 'Add at least two points to draw a section' })
+          this.safeRemoveLayer(layer)
+          return
+        }
+
+        await handleFreehandFinish(geojson, layer, this.map, this.$emit, this.$q, this.overpassUrl)
+        this.map.pm.disableDraw('Line')
+        this.$q.notify({ type: 'positive', message: 'Street section created (vertex mode)' })
       })
 
       this.map.on('pm:create', async (e) => {
