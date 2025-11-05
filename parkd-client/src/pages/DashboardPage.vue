@@ -45,12 +45,13 @@
             label="Draw by Vertex"
             class="q-mt-md"
             color="info"
-            @click="startVertexMode"
+            @click="$refs.leafletMap.startVertexMode()"
           />
         </q-card-section>
 
         <q-card-section class="q-pa-none">
           <LeafletMap
+            ref="leafletMap"
             :placingParkingSpot="placingParkingSpot"
             :freehand-active="freehandMode"
             :block-select-active="blockSelectActive"

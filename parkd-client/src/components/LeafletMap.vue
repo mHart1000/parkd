@@ -4,10 +4,10 @@
 
 <script>
 import L from 'leaflet'
-import { Geolocation } from '@capacitor/geolocation'
 import '@geoman-io/leaflet-geoman-free'
 import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css'
 import 'leaflet/dist/leaflet.css'
+import { Geolocation } from '@capacitor/geolocation'
 import * as turf from '@turf/turf'
 import { markRaw } from 'vue'
 import { createFreehandLine } from '../utils/freehandLineDraw.js'
@@ -105,17 +105,6 @@ export default {
       } else {
         this.map.off('click', this._blockClickHandler)
       }
-    },
-    vertexModeActive (val) {
-      if (val) {
-        this.$q.notify({ type: 'info', message: 'Vertex mode: click to add points, double-click to finish' })
-        this.map.pm.enableDraw('Line', {
-          templineStyle: { color: 'blue' },
-          hintlineStyle: { color: 'blue', dashArray: [5, 5] }
-        })
-      } else {
-        this.map.pm.disableDraw('Line')
-      }
     }
   },
   methods: {
@@ -129,7 +118,7 @@ export default {
       this.map.pm.addControls({
         position: 'topright',
         drawPolygon: false,
-        drawPolyline: false,
+        drawPolyline: true,
         drawRectangle: false,
         drawCircle: false,
         drawMarker: true,
@@ -144,61 +133,76 @@ export default {
         onFinish: (geojson, layer) => handleFreehandFinish(geojson, layer, this.map, this.$emit, this.$q, this.overpassUrl)
       })
 
-      // Handle vertex drawing (fires only when user finishes the line)
-      this.map.on('pm:drawend', async (e) => {
-        if (e.shape !== 'Line') return
-
-        const layer = e.workingLayer || e.layer
-        if (!layer) return
-
-        const geojson = layer.toGeoJSON()
-        const coords = geojson.geometry.coordinates || []
-        if (coords.length < 2) {
-          this.$q.notify({ type: 'warning', message: 'Add at least two points to draw a section' })
-          this.safeRemoveLayer(layer)
-          return
-        }
-
-        await handleFreehandFinish(geojson, layer, this.map, this.$emit, this.$q, this.overpassUrl)
-        this.map.pm.disableDraw('Line')
-        this.$q.notify({ type: 'positive', message: 'Street section created (vertex mode)' })
-      })
-
       this.map.on('pm:create', async (e) => {
         const layer = e.layer
         const geojson = layer.toGeoJSON()
 
-        if (!geojson?.geometry || geojson.geometry.type !== 'Point') {
-          // For non-points use handleFreehandFinish
-          this.safeRemoveLayer(layer)
-          return
-        }
+        if (!geojson?.geometry) return
 
-        // For markers: reverse-geocode and save the parking spot.
-        try {
-          const lineCenter = turf.center(geojson)
-          const [lng, lat] = lineCenter.geometry.coordinates
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`, {
-            headers: { 'User-Agent': CLIENT_USER_AGENT }
-          })
-          const data = await res.json()
-          const street = data.address?.road
-
-          let side = null
+        if (geojson.geometry.type === 'Point') {
+          // Marker placement (Add Parking Spot)
           try {
-            const streetLine = await this.fetchStreetGeometry(street, lat, lng)
-            const bearing = this.getBearing(streetLine)
-            side = this.sideOfStreetFinder(geojson, streetLine, lat, lng, bearing)
-          } catch (err) {
-            side = null
-          }
+            const lineCenter = turf.center(geojson)
+            const [lng, lat] = lineCenter.geometry.coordinates
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`, {
+              headers: { 'User-Agent': CLIENT_USER_AGENT }
+            })
+            const data = await res.json()
+            const street = data.address?.road
 
-          this.saveParkingSpot(geojson, data, side, layer)
-        } catch (err) {
-          console.error('[pm:create] failed to process marker:', err)
+            let side = null
+            try {
+              const streetLine = await this.fetchStreetGeometry(street, lat, lng)
+              const bearing = this.getBearing(streetLine)
+              side = this.sideOfStreetFinder(geojson, streetLine, lat, lng, bearing)
+            } catch (err) {
+              side = null
+            }
+
+            this.saveParkingSpot(geojson, data, side, layer)
+          } catch (err) {
+            console.error('[pm:create] failed to process marker:', err)
+            this.safeRemoveLayer(layer)
+          }
+        } else if (geojson.geometry.type === 'LineString') {
+          // Vertex-drawn street section
+          await handleFreehandFinish(geojson, layer, this.map, this.$emit, this.$q, this.overpassUrl)
+          this.map.pm.disableDraw('Polyline')
+          this.$q.notify({ type: 'positive', message: 'Street section created (vertex mode)' })
+        } else {
           this.safeRemoveLayer(layer)
         }
       })
+    },
+    startVertexMode () {
+      if (!this.map || !this.map.pm) {
+        console.warn('[startVertexMode] map or geoman pm not ready')
+        return
+      }
+
+      // Determine which key is available in this build: 'Line' or 'Polyline'
+      const drawKeys = this.map.pm?.Draw ? Object.keys(this.map.pm.Draw) : []
+      const key = drawKeys.includes('Line')
+        ? 'Line'
+        : (drawKeys.includes('Polyline') ? 'Polyline' : null)
+
+      if (!key) {
+        console.error('[startVertexMode] No Geoman line tool found. Available tools:', drawKeys)
+        this.$q.notify({ type: 'negative', message: 'Cannot start vertex mode: line tool unavailable' })
+        return
+      }
+
+      try {
+        this.map.pm.enableDraw(key, {
+          templineStyle: { color: 'blue' },
+          hintlineStyle: { color: 'blue', dashArray: [5, 5] },
+          finishOn: 'click'
+        })
+        this.$q.notify({ type: 'info', message: 'Vertex mode: click to add points, double-click to finish' })
+      } catch (err) {
+        console.error('[startVertexMode] Failed to enable draw:', err)
+        this.$q.notify({ type: 'negative', message: 'Failed to start vertex mode' })
+      }
     },
     async getLocation () {
       try {
