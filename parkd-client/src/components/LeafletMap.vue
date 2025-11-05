@@ -272,10 +272,10 @@ export default {
           console.log('res.data', res.data)
           const featureCollection = res.data
           L.geoJSON(featureCollection, {
-            onEachFeature: (feature) => {
+            onEachFeature: (feature, layer) => {
               drawBufferedShape(feature.geometry, null, this.map)
 
-              this.map.on('click', (e) => {
+              layer.on('click', (e) => {
                 if (this.placingParkingSpot) return
                 this.$emit('feature-clicked', feature)
               })
