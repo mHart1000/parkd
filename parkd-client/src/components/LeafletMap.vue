@@ -130,7 +130,7 @@ export default {
       })
 
       this.freehand = createFreehandLine(this.map, {
-        onFinish: (geojson, layer) => handleFreehandFinish(geojson, layer, this.map, this.$emit, this.$q, this.overpassUrl)
+        onFinish: (geojson, layer) => handleFreehandFinish(geojson, layer, this.map, this.$emit, this.$q, this.overpassUrl, true)
       })
 
       this.map.on('pm:create', async (e) => {
@@ -166,7 +166,7 @@ export default {
           }
         } else if (geojson.geometry.type === 'LineString') {
           // Vertex-drawn street section
-          await handleFreehandFinish(geojson, layer, this.map, this.$emit, this.$q, this.overpassUrl)
+          await handleFreehandFinish(geojson, layer, this.map, this.$emit, this.$q, this.overpassUrl, true)
           this.map.pm.disableDraw('Polyline')
           this.$q.notify({ type: 'positive', message: 'Street section created (vertex mode)' })
         } else {

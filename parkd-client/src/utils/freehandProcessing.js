@@ -1,6 +1,7 @@
 import * as turf from '@turf/turf'
 import L from 'leaflet'
-export async function handleFreehandFinish (geojson, layer, map, $emit, $q, overpassUrl) {
+
+export async function handleFreehandFinish (geojson, layer, map, $emit, $q, overpassUrl, skipSnapping = false) {
   try {
     // center for reverse geocoding
     const lineCenter = turf.center(geojson)
@@ -10,66 +11,65 @@ export async function handleFreehandFinish (geojson, layer, map, $emit, $q, over
       headers: { 'User-Agent': import.meta.env.VITE_CLIENT_USER_AGENT }
     })
     const data = await res.json()
-    console.log('nominatim data:', data)
     const street = data.address?.road
-    const streetLine = await fetchStreetGeometry(street, lat, lng, overpassUrl)
-    const bearing = getBearing(streetLine)
-    console.log('Street line geometry:', streetLine)
-    console.log('Bearing:', bearing)
-    // snap to street, buffer the snapped segment
-    const snapped = snapFreehandToStreetSegment(geojson, streetLine)
 
-    // draw the result and compute side of street
     let buffered
-    let sideOfStreet
+    let sideOfStreet = null
     let centerForProps = [lng, lat]
+    let streetDirection = null
 
-    if (snapped) {
-      // replace drawn line with street-aligned fat line
-      layer.remove()
-      L.geoJSON(snapped.buffered, {
-        style: { color: '#4A90E2', fillColor: '#4A90E2', fillOpacity: 0.4 }
-      }).addTo(map)
-
-      // recompute center from snapped segment
-      const snappedCenter = turf.center(snapped.segment)
-      centerForProps = snappedCenter.geometry.coordinates
-
-      // determine side of street from the snapped center
-      sideOfStreet = sideOfStreetFinder(
-        turf.point(centerForProps),
-        streetLine,
-        centerForProps[1],
-        centerForProps[0],
-        bearing
-      )
-
-      buffered = snapped.buffered
-    } else {
-      // fallback to previous behavior
-      const tmpSide = sideOfStreetFinder(geojson, streetLine, lat, lng, bearing)
-      sideOfStreet = tmpSide
+    if (skipSnapping) {
+      // Vertex mode: do not use Overpass or snapping, draw exactly what the user clicked
       buffered = drawBufferedShape(geojson, layer, map)
+      streetDirection = 'unsnapped'
+    } else {
+      // Freehand / block-select: align with street data
+      const streetLine = await fetchStreetGeometry(street, lat, lng, overpassUrl)
+      const bearing = getBearing(streetLine)
+      streetDirection = cardinalDirection(bearing)
+
+      const snapped = snapFreehandToStreetSegment(geojson, streetLine)
+
+      if (snapped) {
+        layer.remove()
+        L.geoJSON(snapped.buffered, {
+          style: { color: '#4A90E2', fillColor: '#4A90E2', fillOpacity: 0.4 }
+        }).addTo(map)
+
+        const snappedCenter = turf.center(snapped.segment)
+        centerForProps = snappedCenter.geometry.coordinates
+        sideOfStreet = sideOfStreetFinder(
+          turf.point(centerForProps),
+          streetLine,
+          centerForProps[1],
+          centerForProps[0],
+          bearing
+        )
+        buffered = snapped.buffered
+      } else {
+        buffered = drawBufferedShape(geojson, layer, map)
+      }
     }
 
-    // always ensure we have a LineString to send
-    const safeSegment = snapped?.segment || turf.lineString(turf.getCoords(geojson))
+    // Always ensure we have a LineString to send
+    const safeSegment = turf.lineString(turf.getCoords(geojson))
 
     $emit('shape-drawn', {
       buffered, // polygon for display
       segment: safeSegment, // always a LineString
       address: data.address,
       streetName: street,
-      streetDirection: cardinalDirection(bearing),
+      streetDirection,
       center: centerForProps,
       sideOfStreet,
       geojson: safeSegment // send LineString to API
     })
   } catch (err) {
     console.error('[handleFreehandFinish] error:', err)
-    $q.notify({ type: 'negative', message: 'Failed to process freehand line' })
+    $q.notify({ type: 'negative', message: 'Failed to process line' })
   }
 }
+
 export async function fetchStreetGeometry (streetName, lat, lng, overpassUrl = 'https://overpass-api.de/api/interpreter') {
   const query = `
         [out:json][timeout:25];
