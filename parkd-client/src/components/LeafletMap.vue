@@ -133,6 +133,12 @@ export default {
         optionsControls: false
       })
 
+      const actionBars = document.querySelectorAll('.leaflet-pm-actions-container')
+      const toolbars = document.querySelectorAll('.leaflet-pm-toolbar')
+
+      toolbars.forEach(el => el.remove())
+      actionBars.forEach(el => el.remove())
+
       this.freehand = createFreehandLine(this.map, {
         onFinish: (geojson, layer) => handleFreehandFinish(geojson, layer, this.map, this.$emit, this.$q, this.overpassUrl, true)
       })
