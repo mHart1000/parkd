@@ -118,15 +118,19 @@ export default {
       this.map.pm.addControls({
         position: 'topright',
         drawPolygon: false,
-        drawPolyline: true,
+        drawPolyline: false,
         drawRectangle: false,
         drawCircle: false,
-        drawMarker: true,
+        drawMarker: false,
         drawCircleMarker: false,
-        drawFreehand: true,
-        editMode: true,
-        dragMode: true,
-        removalMode: true
+        drawFreehand: false,
+        editMode: false,
+        dragMode: false,
+        removalMode: false,
+        rotateMode: false,
+        customControls: false,
+        oneBlock: false,
+        optionsControls: false
       })
 
       this.freehand = createFreehandLine(this.map, {
