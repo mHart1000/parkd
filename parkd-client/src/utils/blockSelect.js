@@ -59,8 +59,11 @@ export function computeCandidateBlocks (data, lat, lng) {
     return { way, line, coords, dist }
   }).sort((a, b) => a.dist - b.dist)
 
+  console.log('Ranked ways:', ranked)
   const target = ranked[0]
   const targetLine = target.line
+  console.log('Target :', target)
+  console.log('Target line coords:', turf.getCoords(targetLine))
 
   // Intersections with other roads
   const intersections = []
@@ -70,6 +73,7 @@ export function computeCandidateBlocks (data, lat, lng) {
     if (fc && fc.features.length) intersections.push(...fc.features)
   }
 
+  console.log('Intersections:', intersections)
   // Deduplicate intersections
   const seen = new Set()
   const unique = intersections.filter(pt => {

@@ -74,7 +74,7 @@ Rails.application.configure do
   # config.generators.apply_rubocop_autocorrect_after_generate!
 
   # Use development.log on nginx/systemd-based deployments
-  config.logger = ActiveSupport::Logger.new(Rails.root.join('log', "#{Rails.env}.log"))
+  config.logger = ActiveSupport::Logger.new(Rails.root.join("log", "#{Rails.env}.log"))
   config.log_level = :debug
   config.log_formatter = ::Logger::Formatter.new
   config.autoflush_log = true if config.respond_to?(:autoflush_log)

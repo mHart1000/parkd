@@ -41,13 +41,21 @@
             @click="blockSelectActive = !blockSelectActive"
             :outline="!blockSelectActive"
           />
+          <q-btn
+            label="Draw by Vertex"
+            class="q-mt-md"
+            color="info"
+            @click="$refs.leafletMap.startVertexMode()"
+          />
         </q-card-section>
 
         <q-card-section class="q-pa-none">
           <LeafletMap
+            ref="leafletMap"
             :placingParkingSpot="placingParkingSpot"
             :freehand-active="freehandMode"
             :block-select-active="blockSelectActive"
+            :vertex-mode-active="vertexMode"
             @shape-drawn="handleDrawnShape"
             @feature-clicked="handleFeatureClick"
             @parking-spot-placed="placingParkingSpot = false"
@@ -95,6 +103,7 @@ export default {
       geojson: null,
       placingParkingSpot: false,
       showParkingConflict: false,
+      vertexMode: false,
       blockSelectActive: false,
       freehandMode: false,
       sectionId: null,
@@ -112,6 +121,11 @@ export default {
     }
   },
   methods: {
+    startVertexMode () {
+      this.vertexMode = true
+      this.freehandMode = false
+      this.blockSelectActive = false
+    },
     startFreehand () {
       this.freehandMode = true
     },
