@@ -28,6 +28,8 @@
             color="primary"
             @click="placingParkingSpot = true"
           />
+        </q-card-section>
+        <q-card-section class="row q-gutter-sm">
           <q-btn
             label="Draw Street Section"
             class="q-mt-md"
