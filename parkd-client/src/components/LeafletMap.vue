@@ -140,7 +140,7 @@ export default {
       actionBars.forEach(el => el.remove())
 
       this.freehand = createFreehandLine(this.map, {
-        onFinish: (geojson, layer) => handleFreehandFinish(geojson, layer, this.map, this.$emit, this.$q, this.overpassUrl, true)
+        onFinish: (geojson, layer) => handleFreehandFinish(geojson, layer, this.map, this.$emit, this.$q, this.overpassUrl)
       })
 
       this.map.on('pm:create', async (e) => {
