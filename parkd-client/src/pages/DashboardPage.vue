@@ -34,20 +34,22 @@
             label="Draw Street Section"
             class="q-mt-md"
             color="secondary"
-            @click="startFreehand"
+            @click="setTool('freehand')"
+            :outline="activeTool !== 'freehand'"
           />
           <q-btn
             label="Select Block"
             class="q-mt-md"
             color="accent"
-            @click="blockSelectActive = !blockSelectActive"
-            :outline="!blockSelectActive"
+            @click="setTool('block')"
+            :outline="activeTool !== 'block'"
           />
           <q-btn
             label="Draw by Vertex"
             class="q-mt-md"
             color="info"
-            @click="$refs.leafletMap.startVertexMode()"
+            @click="setTool('vertex')"
+            :outline="activeTool !== 'vertex'"
           />
         </q-card-section>
 
