@@ -107,9 +107,7 @@ export default {
       geojson: null,
       placingParkingSpot: false,
       showParkingConflict: false,
-      vertexMode: false,
-      blockSelectActive: false,
-      freehandMode: false,
+      activeTool: null,
       sectionId: null,
       house_number: null,
       road: null,
@@ -136,13 +134,17 @@ export default {
     }
   },
   methods: {
-    startVertexMode () {
-      this.vertexMode = true
-      this.freehandMode = false
-      this.blockSelectActive = false
-    },
-    startFreehand () {
-      this.freehandMode = true
+    setTool (tool) {
+      if (this.activeTool === tool) {
+        this.activeTool = null
+        return
+      }
+
+      this.activeTool = tool
+
+      if (tool === 'vertex') {
+        this.$refs.leafletMap.startVertexMode()
+      }
     },
     handleDrawnShape (payload) {
       console.log('handleDrawnShape payload:', payload)
@@ -155,7 +157,7 @@ export default {
       this.geojson = payload.geojson
       this.sectionId = null
       this.showRulePopup = true
-      this.freehandMode = false
+      this.activeTool = null
     },
     populateParkingAddress (addressData) {
       this.house_number = addressData.house_number || null
@@ -206,7 +208,7 @@ export default {
         }
 
         this.showRulePopup = false
-        this.blockSelectActive = false
+        this.activeTool = null
         this.$q.notify({ type: 'positive', message: 'Rules saved!' })
       } catch (err) {
         console.error('[handleSaveRules] Error saving:', err)
