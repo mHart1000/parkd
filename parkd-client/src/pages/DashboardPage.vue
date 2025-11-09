@@ -124,6 +124,17 @@ export default {
       console.error('[Dashboard] Warning check failed:', err)
     }
   },
+  computed: {
+    freehandMode () {
+      return this.activeTool === 'freehand'
+    },
+    blockSelectActive () {
+      return this.activeTool === 'block'
+    },
+    vertexMode () {
+      return this.activeTool === 'vertex'
+    }
+  },
   methods: {
     startVertexMode () {
       this.vertexMode = true
