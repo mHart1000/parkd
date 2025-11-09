@@ -17,15 +17,19 @@ export async function handleFreehandFinish (geojson, layer, map, $emit, $q, over
     let sideOfStreet = null
     let centerForProps = [lng, lat]
     let streetDirection = null
+    let bearing = null
 
     if (skipSnapping) {
       // Vertex mode: do not use Overpass or snapping, draw exactly what the user clicked
       buffered = drawBufferedShape(geojson, layer, map)
-      streetDirection = 'unsnapped'
+      bearing = getBearing(geojson)
+      streetDirection = cardinalDirection(bearing)
     } else {
       // Freehand / block-select: align with street data
       const streetLine = await fetchStreetGeometry(street, lat, lng, overpassUrl)
-      const bearing = getBearing(streetLine)
+      console.log('Fetched street line:', streetLine)
+      console.log('geojson line:', geojson)
+      bearing = getBearing(streetLine)
       streetDirection = cardinalDirection(bearing)
 
       const snapped = snapFreehandToStreetSegment(geojson, streetLine)
