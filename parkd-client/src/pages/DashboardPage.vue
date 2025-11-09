@@ -13,7 +13,7 @@
 
       <q-card class="q-pa-md">
         <q-card-section>
-          <div v-if="road || city" class="q-mb-md">
+          <div v-if="road || city" class="">
             <div v-if="road">
               <div class="text-h6">Parked At:</div>
               <div>{{ house_number ? house_number + ' ' : '' }}{{ road }}</div>
@@ -28,6 +28,8 @@
             color="primary"
             @click="placingParkingSpot = true"
           />
+        </q-card-section>
+        <q-card-section class="row q-gutter-sm">
           <q-btn
             label="Draw Street Section"
             class="q-mt-md"

@@ -12,7 +12,7 @@ import * as turf from '@turf/turf'
 import { markRaw } from 'vue'
 import { createFreehandLine } from '../utils/freehandLineDraw.js'
 import { handleBlockClick } from '../utils/blockSelect.js'
-import { handleFreehandFinish, drawBufferedShape } from '../utils/freehandProcessing.js'
+import { handleFreehandFinish, drawBufferedShape, fetchStreetGeometry } from '../utils/freehandProcessing.js'
 
 const CLIENT_USER_AGENT = import.meta.env.VITE_CLIENT_USER_AGENT
 
@@ -140,7 +140,7 @@ export default {
       actionBars.forEach(el => el.remove())
 
       this.freehand = createFreehandLine(this.map, {
-        onFinish: (geojson, layer) => handleFreehandFinish(geojson, layer, this.map, this.$emit, this.$q, this.overpassUrl, true)
+        onFinish: (geojson, layer) => handleFreehandFinish(geojson, layer, this.map, this.$emit, this.$q, this.overpassUrl)
       })
 
       this.map.on('pm:create', async (e) => {
@@ -162,7 +162,7 @@ export default {
 
             let side = null
             try {
-              const streetLine = await this.fetchStreetGeometry(street, lat, lng)
+              const streetLine = await fetchStreetGeometry(street, lat, lng)
               const bearing = this.getBearing(streetLine)
               side = this.sideOfStreetFinder(geojson, streetLine, lat, lng, bearing)
             } catch (err) {
