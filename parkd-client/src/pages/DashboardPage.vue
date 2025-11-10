@@ -34,20 +34,25 @@
             label="Draw Street Section"
             class="q-mt-md"
             color="secondary"
-            @click="startFreehand"
+            @click="setTool('freehand')"
+            :unelevated="activeTool !== 'freehand'"
+            :outline="activeTool === 'freehand'"
           />
           <q-btn
             label="Select Block"
             class="q-mt-md"
             color="accent"
-            @click="blockSelectActive = !blockSelectActive"
-            :outline="!blockSelectActive"
+            @click="setTool('block')"
+            :unelevated="activeTool !== 'block'"
+            :outline="activeTool === 'block'"
           />
           <q-btn
             label="Draw by Vertex"
             class="q-mt-md"
             color="info"
-            @click="$refs.leafletMap.startVertexMode()"
+            @click="setTool('vertex')"
+            :unelevated="activeTool !== 'vertex'"
+            :outline="activeTool === 'vertex'"
           />
         </q-card-section>
 
@@ -105,9 +110,7 @@ export default {
       geojson: null,
       placingParkingSpot: false,
       showParkingConflict: false,
-      vertexMode: false,
-      blockSelectActive: false,
-      freehandMode: false,
+      activeTool: null,
       sectionId: null,
       house_number: null,
       road: null,
@@ -122,14 +125,29 @@ export default {
       console.error('[Dashboard] Warning check failed:', err)
     }
   },
-  methods: {
-    startVertexMode () {
-      this.vertexMode = true
-      this.freehandMode = false
-      this.blockSelectActive = false
+  computed: {
+    freehandMode () {
+      return this.activeTool === 'freehand'
     },
-    startFreehand () {
-      this.freehandMode = true
+    blockSelectActive () {
+      return this.activeTool === 'block'
+    },
+    vertexMode () {
+      return this.activeTool === 'vertex'
+    }
+  },
+  methods: {
+    setTool (tool) {
+      if (this.activeTool === tool) {
+        this.activeTool = null
+        return
+      }
+
+      this.activeTool = tool
+
+      if (tool === 'vertex') {
+        this.$refs.leafletMap.startVertexMode()
+      }
     },
     handleDrawnShape (payload) {
       console.log('handleDrawnShape payload:', payload)
@@ -142,7 +160,7 @@ export default {
       this.geojson = payload.geojson
       this.sectionId = null
       this.showRulePopup = true
-      this.freehandMode = false
+      this.activeTool = null
     },
     populateParkingAddress (addressData) {
       this.house_number = addressData.house_number || null
@@ -193,7 +211,7 @@ export default {
         }
 
         this.showRulePopup = false
-        this.blockSelectActive = false
+        this.activeTool = null
         this.$q.notify({ type: 'positive', message: 'Rules saved!' })
       } catch (err) {
         console.error('[handleSaveRules] Error saving:', err)

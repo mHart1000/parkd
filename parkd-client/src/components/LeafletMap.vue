@@ -92,6 +92,8 @@ export default {
     freehandActive (val) {
       if (!this.freehand) return
       if (val) {
+        this.map.pm.disableDraw('Line')
+        this.map.pm.disableDraw('Polyline')
         this.freehand.enable()
         this.$q.notify({ type: 'info', message: 'Freehand mode: drag to draw, release to finish' })
       } else {
