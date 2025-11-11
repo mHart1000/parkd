@@ -51,3 +51,5 @@ gem "rgeo-geojson"
 gem "activerecord-postgis-adapter"
 
 gem "active_model_serializers", "~> 0.10.15"
+
+gem "webpush", "~> 1.1"

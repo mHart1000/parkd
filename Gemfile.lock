@@ -124,6 +124,7 @@ GEM
     erubi (1.13.0)
     globalid (1.2.1)
       activesupport (>= 6.1)
+    hkdf (0.3.0)
     i18n (1.14.6)
       concurrent-ruby (~> 1.0)
     io-console (0.7.2)
@@ -277,6 +278,9 @@ GEM
       dry-configurable (>= 0.13, < 2)
       jwt (~> 2.1)
       warden (~> 1.2)
+    webpush (1.1.0)
+      hkdf (~> 0.2)
+      jwt (~> 2.0)
     webrick (1.8.2)
     websocket-driver (0.7.6)
       websocket-extensions (>= 0.1.0)
@@ -304,6 +308,7 @@ DEPENDENCIES
   rgeo-geojson
   rubocop-rails-omakase
   tzinfo-data
+  webpush (~> 1.1)
 
 BUNDLED WITH
    2.5.16
