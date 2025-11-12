@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_09_22_085511) do
+ActiveRecord::Schema[7.2].define(version: 2025_11_12_080023) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
   enable_extension "postgis"
@@ -40,6 +40,19 @@ ActiveRecord::Schema[7.2].define(version: 2025_09_22_085511) do
     t.boolean "active"
     t.geography "geometry", limit: {:srid=>4326, :type=>"st_point", :geographic=>true}
     t.index ["user_id"], name: "index_parking_spots_on_user_id"
+  end
+
+  create_table "push_subscriptions", force: :cascade do |t|
+    t.text "endpoint"
+    t.string "p256dh_key"
+    t.string "auth_key"
+    t.string "device_token"
+    t.string "platform"
+    t.integer "user_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["device_token"], name: "index_push_subscriptions_on_device_token", unique: true
+    t.index ["endpoint"], name: "index_push_subscriptions_on_endpoint", unique: true
   end
 
   create_table "street_sections", force: :cascade do |t|
