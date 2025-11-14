@@ -1,7 +1,6 @@
 import axios from 'axios'
 
 export default async () => {
-  console.log('registerSW boot loaded')
   if (!('serviceWorker' in navigator && 'PushManager' in window)) return
 
   try {
