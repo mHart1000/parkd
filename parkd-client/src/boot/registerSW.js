@@ -1,6 +1,7 @@
 import axios from 'axios'
 
 export default async () => {
+  console.log('registerSW boot loaded')
   if (!('serviceWorker' in navigator && 'PushManager' in window)) return
 
   try {
@@ -14,13 +15,12 @@ export default async () => {
     })
 
     await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/push_subscriptions`, subscription)
-
   } catch (err) {
     console.error('Service worker registration or subscription failed', err)
   }
 }
 
-function urlBase64ToUint8Array(base64String) {
+function urlBase64ToUint8Array (base64String) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
   const raw = window.atob(base64)
