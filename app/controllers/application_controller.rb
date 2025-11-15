@@ -14,7 +14,7 @@ class ApplicationController < ActionController::API
   end
 
   def set_cors_headers
-    response.set_header("Access-Control-Allow-Origin", "http://localhost:9000")
+    response.set_header("Access-Control-Allow-Origin", ENV.fetch("CLIENT_URL"))
     response.set_header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD")
     response.set_header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, Token")
     response.set_header("Access-Control-Allow-Credentials", "true")
