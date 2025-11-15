@@ -1,6 +1,8 @@
 import axios from 'axios'
 
 export default async () => {
+  // prod uses quasar pwa service worker
+  if (process.env.NODE_ENV !== 'development') return
   if (!('serviceWorker' in navigator && 'PushManager' in window)) return
 
   try {
