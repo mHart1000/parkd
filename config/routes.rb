@@ -1,7 +1,5 @@
 require "sidekiq/web"
 
-mount Sidekiq::Web => "/sidekiq"
-
 Rails.application.routes.draw do
   devise_for :users, path: "api/users", defaults: { format: :json }, controllers: {
     sessions: "api/sessions",
@@ -17,6 +15,7 @@ Rails.application.routes.draw do
     get "alerts/nearby_upcoming_rules", to: "alerts#nearby_upcoming_rules"
   end
 
+  mount Sidekiq::Web => "/sidekiq"
   # Health check endpoint for uptime monitoring
   get "up" => "rails/health#show", as: :rails_health_check
 end
