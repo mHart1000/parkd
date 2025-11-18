@@ -1,5 +1,12 @@
 :concurrency: 5
+
 :queues:
   - default
   - mailers
   - push_notifications
+
+:cron:
+  check_upcoming_alerts:
+    cron: "*/5 * * * *"
+    class: "CheckUpcomingAlertsJob"
+    queue: push_notifications
