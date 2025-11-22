@@ -32,7 +32,7 @@ class ParkingRule < ApplicationRecord
 
     end_dt += 1.day if end_dt <= start_dt
 
-    [start_dt, end_dt]
+    [ start_dt, end_dt ]
   end
 
   private

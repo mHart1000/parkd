@@ -14,7 +14,7 @@ class RuleViolationAlertJob
   private
 
   def scan_user(user)
-    #lead_time = user.notification_lead_time || 12.hours
+    # lead_time = user.notification_lead_time || 12.hours
     lead_time = 12.hours
     now = Time.current
 
@@ -74,7 +74,6 @@ class RuleViolationAlertJob
 
 
   def alert_notifier(alert)
-
     return if alert.sent_at.present?
 
     PushNotificationJob.perform_async(
@@ -92,7 +91,6 @@ class RuleViolationAlertJob
     Alert.where("alert_time <= ?", now)
          .where(sent: false)
          .find_each do |alert|
-
       alert_notifier(alert)
       alert.update!(sent: true)
     end
