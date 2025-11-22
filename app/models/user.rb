@@ -10,4 +10,6 @@ class User < ApplicationRecord
   has_many :street_sections
   has_many :parking_rules, through: :street_sections
   has_many :parking_spots
+  has_many :push_subscriptions
+  has_many :alerts
 end
