@@ -1,4 +1,5 @@
-class PushNotificationJob < ApplicationJob
+class PushNotificationJob
+  include Sidekiq::Worker
   queue_as :push_notifications
 
   def perform(subscription_id, message)
