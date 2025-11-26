@@ -39,9 +39,9 @@ class ParkingRule < ApplicationRecord
 
   def later_today?(now)
     candidate = now.change(
-      hour: start_time.hour,
-      min:  start_time.min,
-      sec:  start_time.sec
+      hour: end_time.hour,
+      min:  end_time.min,
+      sec:  end_time.sec
     )
     candidate > now
   end
