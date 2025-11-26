@@ -1,0 +1,4 @@
+rule_violation_alert_job:
+  cron: "*/5 * * * *"
+  class: "RuleViolationAlertJob"
+  queue: "push_notifications"
