@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_11_22_054814) do
+ActiveRecord::Schema[7.2].define(version: 2025_11_27_063332) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
   enable_extension "postgis"
@@ -25,6 +25,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_22_054814) do
     t.datetime "updated_at", null: false
     t.datetime "rule_start_time"
     t.datetime "sent_at"
+    t.datetime "enqueued_at"
     t.index ["parking_rule_id"], name: "index_alerts_on_parking_rule_id"
     t.index ["parking_spot_id"], name: "index_alerts_on_parking_spot_id"
     t.index ["user_id"], name: "index_alerts_on_user_id"

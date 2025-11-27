@@ -57,7 +57,7 @@ class RuleViolationAlertJob
       user_id: user.id,
       parking_spot_id: spot.id,
       parking_rule_id: rule.id,
-      rule_start_time: real_start,
+      rule_start_time: real_start
     )
 
     alert_time = real_start - lead_time
@@ -72,27 +72,35 @@ class RuleViolationAlertJob
     )
   end
 
-
-  def alert_notifier(alert)
-    return if alert.sent_at.present?
-
-    PushNotificationJob.perform_async(
-      alert.user.push_subscriptions[0].id,
-      "Your parking rule starts in 12 hours!"
-    )
-
-    alert.update!(sent_at: Time.current)
-  end
-
-
   def deliver_due_alerts
     now = Time.current
 
     Alert.where("alert_time <= ?", now)
          .where(sent: false)
+         .where(enqueued_at: nil)
          .find_each do |alert|
-      alert_notifier(alert)
-      alert.update!(sent: true)
+      enqueue_alert_notification(alert)
     end
+  end
+
+  def enqueue_alert_notification(alert)
+    user = alert.user
+    return unless user
+
+    subscription = user.push_subscriptions.first
+    return unless subscription
+
+    message = {
+      "title" => "Parkd",
+      "body" => "Your parking rule starts in 12 hours!"
+    }
+
+    PushNotificationJob.perform_async(
+      subscription.id,
+      message,
+      alert.id
+    )
+
+    alert.update!(enqueued_at: Time.current)
   end
 end
