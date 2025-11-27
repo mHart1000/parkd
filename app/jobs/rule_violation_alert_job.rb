@@ -13,6 +13,10 @@ class RuleViolationAlertJob
 
   private
 
+  # If we ever need to scale, geometric querying and alert creation can
+  # be done in jobs triggered by after_commit callbacks on ParkingSpot
+  # and ParkingRule. This job could pretty much just be deliver_due_alerts
+
   def scan_user(user)
     # lead_time = user.notification_lead_time || 12.hours
     lead_time = 12.hours
