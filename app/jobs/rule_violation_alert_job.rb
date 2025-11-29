@@ -25,31 +25,12 @@ class RuleViolationAlertJob
     user.parking_spots.where(active: true).find_each do |spot|
       next unless spot.geometry
 
-      candidate_sections = nearby_street_sections(spot, user)
+      active_rules = spot.active_rules(user)
 
-      candidate_sections.each do |section|
-        section.parking_rules.each do |rule|
-          schedule_alert_for_rule(user, spot, rule, now, lead_time)
-        end
+      active_rules.each do |rule|
+        schedule_alert_for_rule(user, spot, rule, now, lead_time)
       end
     end
-  end
-
-  def nearby_street_sections(spot, user)
-    lng, lat = spot.geometry.coordinates
-    radius_m = 15.0
-
-    StreetSection
-      .where(<<~SQL.squish, lng, lat, radius_m)
-        ST_DWithin(
-          ST_SetSRID(ST_MakeValid(street_sections.geometry::geometry), 4326)::geography,
-          ST_SetSRID(ST_Point(?, ?), 4326)::geography,
-          ?
-        )
-      SQL
-      .where(user_id: user.id)
-      .includes(:parking_rules)
-      .distinct
   end
 
   def schedule_alert_for_rule(user, spot, rule, now, lead_time)
@@ -77,12 +58,7 @@ class RuleViolationAlertJob
   end
 
   def deliver_due_alerts
-    now = Time.current
-
-    Alert.where("alert_time <= ?", now)
-         .where(sent: false)
-         .where(enqueued_at: nil)
-         .find_each do |alert|
+    Alert.ready_to_send.find_each do |alert|
       enqueue_alert_notification(alert)
     end
   end
@@ -90,13 +66,15 @@ class RuleViolationAlertJob
   def enqueue_alert_notification(alert)
     user = alert.user
     return unless user
+    # lead_time = user.notification_lead_time || 12.hours
+    lead_time = 12.hours
 
     subscription = user.push_subscriptions.first
     return unless subscription
 
     message = {
       "title" => "Parkd",
-      "body" => "Your parking rule starts in 12 hours!"
+      "body" => "Your parking rule starts in #{lead_time / 1.hour} hours!"
     }
 
     PushNotificationJob.perform_async(
