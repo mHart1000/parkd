@@ -10,10 +10,26 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_11_12_080023) do
+ActiveRecord::Schema[7.2].define(version: 2025_11_29_032102) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
   enable_extension "postgis"
+
+  create_table "alerts", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "parking_spot_id", null: false
+    t.bigint "parking_rule_id", null: false
+    t.datetime "alert_time"
+    t.boolean "sent"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.datetime "rule_start_time"
+    t.datetime "sent_at"
+    t.datetime "enqueued_at"
+    t.index ["parking_rule_id"], name: "index_alerts_on_parking_rule_id"
+    t.index ["parking_spot_id"], name: "index_alerts_on_parking_spot_id"
+    t.index ["user_id"], name: "index_alerts_on_user_id"
+  end
 
   create_table "parking_rules", force: :cascade do |t|
     t.bigint "street_section_id", null: false
@@ -78,11 +94,15 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_12_080023) do
     t.datetime "updated_at", null: false
     t.string "name"
     t.string "jti"
+    t.integer "notification_lead_time_hours"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["jti"], name: "index_users_on_jti", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
+  add_foreign_key "alerts", "parking_rules"
+  add_foreign_key "alerts", "parking_spots"
+  add_foreign_key "alerts", "users"
   add_foreign_key "parking_rules", "street_sections"
   add_foreign_key "parking_spots", "users"
   add_foreign_key "street_sections", "users"
