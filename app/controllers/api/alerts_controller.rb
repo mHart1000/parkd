@@ -8,7 +8,7 @@ class Api::AlertsController < ApplicationController
     now = Time.now.getlocal
     tomorrow = now + 24.hours
 
-    spot.active_rules(current_user).any? do |rule|
+    close_section = spot.active_rules(current_user).any? do |rule|
       start_dt, end_dt = rule.next_occurrence(now)
 
       start_in_window  = start_dt.between?(now, tomorrow)
