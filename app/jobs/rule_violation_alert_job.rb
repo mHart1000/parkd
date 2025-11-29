@@ -18,8 +18,7 @@ class RuleViolationAlertJob
   # and ParkingRule. This job could pretty much just be deliver_due_alerts
 
   def scan_user(user)
-    # lead_time = user.notification_lead_time || 12.hours
-    lead_time = 12.hours
+    lead_time = user.notification_lead_time || 12.hours
     now = Time.current
 
     user.parking_spots.where(active: true).find_each do |spot|
@@ -66,8 +65,7 @@ class RuleViolationAlertJob
   def enqueue_alert_notification(alert)
     user = alert.user
     return unless user
-    # lead_time = user.notification_lead_time || 12.hours
-    lead_time = 12.hours
+    lead_time = user.notification_lead_time || 12.hours
 
     subscription = user.push_subscriptions.first
     return unless subscription

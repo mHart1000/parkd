@@ -27,7 +27,7 @@ class ParkingSpot < ApplicationRecord
   def upcoming_broken_rules(user)
     active_rules(user).select do |rule|
       real_start, _real_end = rule.next_occurrence
-      real_start <= Time.current + 12.hours #user.notification_lead_time.hours
+      real_start <= Time.current + user.notification_lead_time
     end
   end
 end

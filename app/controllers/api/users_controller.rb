@@ -24,7 +24,7 @@ module Api
     private
 
     def user_params
-      params.require(:user).permit(:name, :email, :password, :password_confirmation)
+      params.require(:user).permit(:name, :email, :password, :password_confirmation, :notification_lead_time_hours)
     end
   end
 end
