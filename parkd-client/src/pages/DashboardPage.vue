@@ -226,6 +226,6 @@ export default {
 
 .alert-banner {
   background-color: #cc353a;
-  box-shadow: inset -1px -1px 5px 0px #8642c5;
+  box-shadow: inset -1px -1px 5px 0px #534eae;
 }
 </style>
