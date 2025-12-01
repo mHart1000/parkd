@@ -1,7 +1,7 @@
 <template>
   <q-layout view="lHh Lpr lFf">
-    <q-header elevated>
-      <q-toolbar>
+    <q-header class="bg-dark-page">
+
         <q-btn
           flat
           dense
@@ -11,13 +11,6 @@
           @click="toggleLeftDrawer"
         />
 
-        <q-toolbar-title>
-          Parkd
-        </q-toolbar-title>
-
-        <div></div>
-
-      </q-toolbar>
     </q-header>
 
     <q-drawer
@@ -28,7 +21,7 @@
         <q-item-label
           header
         >
-          Menu
+          Parkd
         </q-item-label>
 
         <EssentialLink
