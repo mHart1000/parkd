@@ -1,1 +1,3 @@
-/* app global css */
+.bg-dark-page {
+  background-color: var(--q-color-dark-page);
+}

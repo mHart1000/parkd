@@ -1,7 +1,7 @@
 <template>
   <q-layout view="lHh Lpr lFf">
-    <q-header elevated>
-      <q-toolbar>
+    <q-header class="bg-dark-page">
+
         <q-btn
           flat
           dense
@@ -11,13 +11,6 @@
           @click="toggleLeftDrawer"
         />
 
-        <q-toolbar-title>
-          Parkd
-        </q-toolbar-title>
-
-        <div></div>
-
-      </q-toolbar>
     </q-header>
 
     <q-drawer
@@ -28,7 +21,7 @@
         <q-item-label
           header
         >
-          Menu
+          Parkd
         </q-item-label>
 
         <EssentialLink
@@ -48,6 +41,15 @@
           </q-item-section>
         </q-item>
 
+        <q-item clickable @click="toggleDark">
+          <q-item-section avatar>
+            <q-icon name="dark_mode" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Toggle Dark Mode</q-item-label>
+          </q-item-section>
+        </q-item>
+
       </q-list>
     </q-drawer>
 
@@ -60,7 +62,7 @@
 <script>
 import { defineComponent, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useQuasar } from 'quasar'
+import { useQuasar, Dark } from 'quasar'
 import { api } from 'src/boot/axios'
 import EssentialLink from 'components/EssentialLink.vue'
 
@@ -98,13 +100,18 @@ export default defineComponent({
       router.push('/login')
     }
 
+    const toggleDark = () => {
+      Dark.toggle()
+    }
+
     return {
       essentialLinks: linksList,
       leftDrawerOpen,
       toggleLeftDrawer () {
         leftDrawerOpen.value = !leftDrawerOpen.value
       },
-      logout
+      logout,
+      toggleDark
     }
   }
 })
