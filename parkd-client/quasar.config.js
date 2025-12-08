@@ -90,16 +90,16 @@ module.exports = configure(function (/* ctx */) {
       config: {
         dark: 'auto',
         brand: {
-          primary: '#2e717b',
-          secondary: '#D38C28',
+          primary: '#37747b',
+          secondary: '#a2933a',
           accent: '#C8454F',
 
-          dark: '#1b2331',
-          'dark-page': '#14151b',
+          dark: '#2a2f38',
+          'dark-page': '#272728',
 
           positive: '#2F855A',
           negative: '#C53030',
-          info: '#2563EB',
+          info: '#446fbb',
           warning: '#D97706'
         }
       },
