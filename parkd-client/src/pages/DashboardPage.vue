@@ -3,7 +3,7 @@
     <div class="dashboard-wrapper">
       <q-banner
         v-if="showParkingConflict"
-        class="bg-red text-white q-mb-md"
+        class="alert-banner bg-accent text-black q-mb-md"
         rounded
       >
         <div class="text-h5">
@@ -223,4 +223,8 @@ export default {
 </script>
 
 <style scoped>
+
+.alert-banner {
+  /*box-shadow: inset -1px -1px 5px 0px #534eae;*/
+}
 </style>
