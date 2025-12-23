@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "@turf/turf": "^7.2.0",
-    "axios": "^1.7.9"
+    "axios": "^1.7.9",
+    "capacitor-secure-storage-plugin": "^0.10.0"
   }
 }
