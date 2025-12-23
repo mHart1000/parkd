@@ -1,4 +1,4 @@
-class Api::PushSubscriptionsController < ApplicationController
+class Api::PushSubscriptionsController < Api::ApiController
   def create
     data = params[:push_subscription]
 

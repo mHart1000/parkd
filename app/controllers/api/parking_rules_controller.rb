@@ -1,4 +1,4 @@
-class Api::ParkingRulesController < ApplicationController
+class Api::ParkingRulesController < Api::ApiController
   def index
     rules = ParkingRule.all
     rules = rules.where(street_section_id: params[:street_section_id]) if params[:street_section_id].present?
