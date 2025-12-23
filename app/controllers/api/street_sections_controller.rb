@@ -1,6 +1,5 @@
 module Api
-  class StreetSectionsController < ApplicationController
-    before_action :authenticate_user!
+  class StreetSectionsController < ApiController
 
     def index
       features = current_user.street_sections.map do |s|

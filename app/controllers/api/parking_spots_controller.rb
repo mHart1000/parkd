@@ -1,5 +1,4 @@
-class Api::ParkingSpotsController < ApplicationController
-  before_action :authenticate_user!
+class Api::ParkingSpotsController < Api::ApiController
 
   def index
     if params[:active] == "true"
