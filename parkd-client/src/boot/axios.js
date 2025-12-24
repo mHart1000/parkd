@@ -1,12 +1,14 @@
 import { boot } from 'quasar/wrappers'
 import axios from 'axios'
+import { secureStorage } from 'src/utils/secureStorage'
 
 const api = axios.create({
-  baseURL: 'http://192.168.0.241/api'
+  baseURL: import.meta.env.VITE_API_URL || '/api'
 })
 
-api.interceptors.request.use(config => {
-  const token = localStorage.getItem('token')
+// Add Authorization header from secure storage
+api.interceptors.request.use(async config => {
+  const token = await secureStorage.getToken()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -14,6 +16,17 @@ api.interceptors.request.use(config => {
 }, error => {
   return Promise.reject(error)
 })
+
+// Handle 401 responses - clear token
+api.interceptors.response.use(
+  response => response,
+  async error => {
+    if (error.response?.status === 401) {
+      await secureStorage.removeToken()
+    }
+    return Promise.reject(error)
+  }
+)
 
 export default boot(({ app }) => {
   // Make Axios globally available in your Vue components
