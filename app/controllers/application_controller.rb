@@ -1,7 +1,6 @@
 class ApplicationController < ActionController::API
   include Devise::Controllers::Helpers
 
-  before_action :set_cors_headers
   before_action :set_default_response_format
   before_action :configure_permitted_parameters, if: :devise_controller?
 
@@ -11,13 +10,6 @@ class ApplicationController < ActionController::API
 
   def set_default_response_format
     request.format = :json
-  end
-
-  def set_cors_headers
-    response.set_header("Access-Control-Allow-Origin", ENV.fetch("CLIENT_URL"))
-    response.set_header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD")
-    response.set_header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, Token")
-    response.set_header("Access-Control-Allow-Credentials", "true")
   end
 
   def handle_standard_error(exception)
