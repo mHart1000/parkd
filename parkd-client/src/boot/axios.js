@@ -6,7 +6,6 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api'
 })
 
-// Add Authorization header from secure storage
 api.interceptors.request.use(async config => {
   const token = await secureStorage.getToken()
   if (token) {
@@ -17,7 +16,6 @@ api.interceptors.request.use(async config => {
   return Promise.reject(error)
 })
 
-// Handle 401 responses - clear token
 api.interceptors.response.use(
   response => response,
   async error => {
@@ -29,9 +27,8 @@ api.interceptors.response.use(
 )
 
 export default boot(({ app }) => {
-  // Make Axios globally available in your Vue components
-  app.config.globalProperties.$axios = axios // Default Axios instance
-  app.config.globalProperties.$api = api // Custom API instance
+  app.config.globalProperties.$axios = axios
+  app.config.globalProperties.$api = api
 })
 
 export { axios, api }

@@ -45,6 +45,8 @@
 
 <script>
 import { Notify } from 'quasar'
+import { secureStorage } from 'src/utils/secureStorage'
+import { registerPushNotifications } from 'src/boot/registerSW'
 
 export default {
   name: 'LoginPage',
@@ -65,15 +67,10 @@ export default {
           }
         })
 
-        // Store the JWT token in localStorage
-        console.log('Login response:', response)
-        console.log('login data:', response.data)
-        console.log('Token:', response.data.token)
         const token = response.data.token
-        localStorage.setItem('token', token)
+        await secureStorage.setToken(token)
 
-        // Set the token in Axios for future requests
-        this.$api.defaults.headers.common.Authorization = `Bearer ${token}`
+        await registerPushNotifications()
 
         // Notify user and redirect
         Notify.create({ type: 'positive', message: 'Login successful!' })
