@@ -1,5 +1,4 @@
 class Api::AlertsController < Api::ApiController
-
   def nearby_upcoming_rules
     spot = current_user.parking_spots.find_by(active: true)
     return render json: { alert: false } unless spot&.geometry

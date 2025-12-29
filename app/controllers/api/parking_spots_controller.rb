@@ -1,5 +1,4 @@
 class Api::ParkingSpotsController < Api::ApiController
-
   def index
     if params[:active] == "true"
       spot = current_user.parking_spots.find_by(active: true)
