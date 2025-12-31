@@ -1,24 +1,43 @@
-import axios from 'axios'
+import { api } from 'src/boot/axios'
+import { secureStorage } from 'src/utils/secureStorage'
+import { Capacitor } from '@capacitor/core'
 
-export default async () => {
-  // prod uses quasar pwa service worker
-  if (process.env.NODE_ENV !== 'development') return
-  if (!('serviceWorker' in navigator && 'PushManager' in window)) return
+export async function registerPushNotifications () {
+  if (!('serviceWorker' in navigator && 'PushManager' in window)) {
+    console.warn('Push notifications not supported in this browser')
+    return false
+  }
 
   try {
     const reg = await navigator.serviceWorker.register('/service-worker.js')
     const permission = await Notification.requestPermission()
-    if (permission !== 'granted') return
+    if (permission !== 'granted') {
+      console.warn('Push notification permission denied')
+      return false
+    }
 
     const subscription = await reg.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(import.meta.env.VITE_VAPID_PUBLIC_KEY)
     })
 
-    await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/push_subscriptions`, subscription)
+    await api.post('/push_subscriptions', subscription)
+    console.log('Push notification subscription registered')
+    return true
   } catch (err) {
-    console.error('Service worker registration or subscription failed', err)
+    console.error('Push notification registration failed', err)
+    return false
   }
+}
+
+export default async () => {
+  // different method for mobile
+  if (Capacitor.isNativePlatform()) return
+
+  const token = await secureStorage.getToken()
+  if (!token) return
+
+  await registerPushNotifications()
 }
 
 function urlBase64ToUint8Array (base64String) {

@@ -1,6 +1,7 @@
 import { route } from 'quasar/wrappers'
 import { createRouter, createMemoryHistory, createWebHistory, createWebHashHistory } from 'vue-router'
 import routes from './routes'
+import { secureStorage } from 'src/utils/secureStorage'
 
 /*
  * If not building with SSR mode, you can
@@ -10,6 +11,8 @@ import routes from './routes'
  * async/await or return a Promise which resolves
  * with the Router instance.
  */
+
+const guestOnlyRoutes = ['/login', '/register']
 
 export default route(function (/* { store, ssrContext } */) {
   const createHistory = process.env.SERVER
@@ -24,6 +27,21 @@ export default route(function (/* { store, ssrContext } */) {
     // quasar.conf.js -> build -> vueRouterMode
     // quasar.conf.js -> build -> publicPath
     history: createHistory(process.env.VUE_ROUTER_BASE)
+  })
+
+  Router.beforeEach(async (to, from, next) => {
+    const token = await secureStorage.getToken()
+    const isAuthenticated = !!token
+
+    if (isAuthenticated && guestOnlyRoutes.includes(to.path)) {
+      return next('/dashboard')
+    }
+
+    if (to.meta.requiresAuth && !isAuthenticated) {
+      return next('/login')
+    }
+
+    next()
   })
 
   return Router

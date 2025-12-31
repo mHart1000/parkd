@@ -64,6 +64,7 @@ import { defineComponent, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar, Dark } from 'quasar'
 import { api } from 'src/boot/axios'
+import { secureStorage } from 'src/utils/secureStorage'
 import EssentialLink from 'components/EssentialLink.vue'
 
 const linksList = [
@@ -93,10 +94,15 @@ export default defineComponent({
     const router = useRouter()
     const $q = useQuasar()
 
-    const logout = () => {
-      localStorage.removeItem('token')
-      api.defaults.headers.common.Authorization = ''
-      $q.notify({ type: 'positive', message: 'You have been logged out!' })
+    const logout = async () => {
+      try {
+        await api.delete('/users/sign_out')
+        $q.notify({ type: 'positive', message: 'You have been logged out!' })
+      } catch (error) {
+        console.error('Logout error:', error)
+        $q.notify({ type: 'warning', message: 'Logged out locally' })
+      }
+      await secureStorage.removeToken()
       router.push('/login')
     }
 
