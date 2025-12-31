@@ -20,7 +20,13 @@ api.interceptors.response.use(
   response => response,
   async error => {
     if (error.response?.status === 401) {
-      await secureStorage.removeToken()
+      const isAuthEndpoint = error.config.url.includes('/users/sign_in') ||
+        error.config.url.includes('/users/sign_out')
+
+      if (!isAuthEndpoint) {
+        await secureStorage.removeToken()
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(error)
   }
