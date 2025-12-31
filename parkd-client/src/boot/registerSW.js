@@ -1,5 +1,6 @@
 import { api } from 'src/boot/axios'
 import { secureStorage } from 'src/utils/secureStorage'
+import { Capacitor } from '@capacitor/core'
 
 export async function registerPushNotifications () {
   if (!('serviceWorker' in navigator && 'PushManager' in window)) {
