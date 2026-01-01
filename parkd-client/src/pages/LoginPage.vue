@@ -32,10 +32,9 @@
               </q-btn>
             </template>
           </q-input>
-
         </q-form>
       </q-card-section>
-
+      <a href="/register" class="q-mt-md">Create Account</a>
       <q-card-actions align="right">
         <q-btn label="Login" color="primary" @click="loginUser" />
       </q-card-actions>
