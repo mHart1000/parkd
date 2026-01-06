@@ -9,6 +9,9 @@
         <q-input v-model="passwordConfirmation" label="Confirm Password" type="password" outlined class="q-mb-lg" />
         <q-btn label="Register" type="submit" color="dark" class="full-width" unelevated />
       </q-form>
+      <div class="text-center q-mt-md">
+        Already have an account? <router-link to="/login" class="text-primary">Sign in</router-link>
+      </div>
     </div>
   </q-page>
 </template>
