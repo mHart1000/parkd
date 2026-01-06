@@ -34,8 +34,10 @@
           </q-input>
         </q-form>
       </q-card-section>
-      <a href="/register" class="q-mt-md">Create Account</a>
-      <q-card-actions align="right">
+      <div class="text-center q-mt-md">
+        Don't have an account? <router-link to="/register" class="text-primary">Sign up</router-link>
+      </div>
+      <q-card-actions align="right" class="q-pa-sm">
         <q-btn label="Login" color="primary" @click="loginUser" />
       </q-card-actions>
     </q-card>
