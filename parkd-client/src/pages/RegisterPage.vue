@@ -1,12 +1,15 @@
 <template>
-  <q-page>
-    <q-form @submit="registerUser" class="q-pa-md">
-      <q-input v-model="name" label="Name" />
-      <q-input v-model="email" label="Email" type="email" />
-      <q-input v-model="password" label="Password" type="password" />
-      <q-input v-model="passwordConfirmation" label="Confirm Password" type="password" />
-      <q-btn label="Register" type="submit" color="primary" />
-    </q-form>
+  <q-page class="flex flex-center">
+    <div class="register-card q-pa-lg">
+      <div class="text-h5 text-center q-mb-lg">Create Account</div>
+      <q-form @submit="registerUser">
+        <q-input v-model="name" label="Name" outlined class="q-mb-md" />
+        <q-input v-model="email" label="Email" type="email" outlined class="q-mb-md" />
+        <q-input v-model="password" label="Password" type="password" outlined class="q-mb-md" />
+        <q-input v-model="passwordConfirmation" label="Confirm Password" type="password" outlined class="q-mb-lg" />
+        <q-btn label="Register" type="submit" color="dark" class="full-width" unelevated />
+      </q-form>
+    </div>
   </q-page>
 </template>
 
@@ -53,3 +56,10 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+.register-card {
+  width: 100%;
+  max-width: 400px;
+}
+</style>
