@@ -12,6 +12,7 @@
             autofocus
             dense
             clearable
+            borderless
           />
 
           <q-input
@@ -20,6 +21,7 @@
             label="Password"
             dense
             clearable
+            borderless
           >
             <template v-slot:append>
               <q-btn
@@ -84,3 +86,10 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+:deep(.q-field__control) {
+  background-color: #24a2b1;
+  border-radius: 2px;
+}
+</style>
