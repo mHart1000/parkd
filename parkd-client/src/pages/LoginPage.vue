@@ -27,11 +27,12 @@
               <q-btn
                 dense
                 flat
+                round
+                size="sm"
+                :icon="showPassword ? 'visibility_off' : 'visibility'"
                 @click="showPassword = !showPassword"
                 :aria-label="showPassword ? 'Hide password' : 'Show password'"
-              >
-                {{ showPassword ? 'Hide' : 'Show' }}
-              </q-btn>
+              />
             </template>
           </q-input>
         </q-form>
