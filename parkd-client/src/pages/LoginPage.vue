@@ -89,7 +89,12 @@ export default {
 
 <style scoped>
 :deep(.q-field__control) {
-  background-color: #24a2b1;
+  background-color: #68a3ab;
   border-radius: 2px;
+  color: #2c2c2c;
+}
+
+:deep(.q-field__label) {
+  color: #2b2b2b !important;
 }
 </style>
