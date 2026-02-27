@@ -2,21 +2,68 @@ import * as turf from '@turf/turf'
 import L from 'leaflet'
 import { cardinalDirection, getBearing } from './freehandProcessing.js'
 
+// Multiple mirrors to keep block select responsive when one Overpass instance is slow
+const OVERPASS_ENDPOINTS = [
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass-api.de/api/interpreter',
+  'https://lz4.overpass-api.de/api/interpreter'
+]
+function buildBlockQuery (lat, lng) {
+  return `
+        [out:json][timeout:25];
+        way(around:100,${lat},${lng})["highway"];
+        (._;>;);
+        out geom;
+      `
+}
+
+async function raceOverpass (lat, lng, preferredUrl) {
+  const query = buildBlockQuery(lat, lng)
+  const endpoints = preferredUrl
+    ? [preferredUrl, ...OVERPASS_ENDPOINTS.filter(u => u !== preferredUrl)]
+    : OVERPASS_ENDPOINTS
+
+  const controllers = []
+  const attempts = endpoints.map(url => {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 3500)
+    controllers.push({ controller, timer })
+    return fetch(url, { method: 'POST', body: query, signal: controller.signal })
+      .then(res => {
+        const ct = res.headers.get('content-type') || ''
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        if (!ct.includes('application/json')) throw new Error('Non-JSON response')
+        return res.json()
+      })
+      .then(json => ({ json, url }))
+  })
+
+  // Promise.any resolves on the first fulfilled request, rejects only if all fail
+  try {
+    return await Promise.any(attempts)
+  } finally {
+    controllers.forEach(({ controller, timer }) => {
+      clearTimeout(timer)
+      controller.abort()
+    })
+  }
+}
+
 export async function handleBlockClick (e, overpassUrl, candidateLayers, $q, map, $emit, updateLayers) {
   const { lat, lng } = e.latlng
 
   candidateLayers = clearCandidateLayers(candidateLayers, map)
 
-  const res = await fetch(overpassUrl, {
-    method: 'POST',
-    body: `
-          [out:json][timeout:25];
-          way(around:100,${lat},${lng})["highway"];
-          (._;>;);
-          out geom;
-        `
-  })
-  const data = await res.json()
+  let data
+  try {
+    const { json, url } = await raceOverpass(lat, lng, overpassUrl)
+    data = json
+    console.info('[handleBlockClick] Overpass success via', url)
+  } catch (err) {
+    console.warn('[handleBlockClick] Overpass failed:', err)
+    $q.notify({ type: 'negative', message: 'Overpass is busy. Please try again.' })
+    return candidateLayers
+  }
 
   const blocks = computeCandidateBlocks(data, lat, lng)
 
