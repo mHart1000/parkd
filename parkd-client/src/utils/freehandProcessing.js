@@ -1,6 +1,53 @@
 import * as turf from '@turf/turf'
 import L from 'leaflet'
 
+// Mirror list and short timeout to keep Overpass-dependent flows responsive
+const OVERPASS_ENDPOINTS = [
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass-api.de/api/interpreter',
+  'https://lz4.overpass-api.de/api/interpreter'
+]
+
+function buildStreetQuery (lat, lng) {
+  return `
+        [out:json][timeout:25];
+        way(around:5,${lat},${lng})["highway"];
+        (._;>;);
+        out geom;
+      `
+}
+
+async function raceOverpass (lat, lng, preferredUrl) {
+  const query = buildStreetQuery(lat, lng)
+  const endpoints = preferredUrl
+    ? [preferredUrl, ...OVERPASS_ENDPOINTS.filter(u => u !== preferredUrl)]
+    : OVERPASS_ENDPOINTS
+
+  const controllers = []
+  const attempts = endpoints.map(url => {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 3500)
+    controllers.push({ controller, timer })
+    return fetch(url, { method: 'POST', body: query, signal: controller.signal })
+      .then(res => {
+        const ct = res.headers.get('content-type') || ''
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        if (!ct.includes('application/json')) throw new Error('Non-JSON response')
+        return res.json()
+      })
+      .then(json => ({ json, url }))
+  })
+
+  try {
+    return await Promise.any(attempts)
+  } finally {
+    controllers.forEach(({ controller, timer }) => {
+      clearTimeout(timer)
+      controller.abort()
+    })
+  }
+}
+
 export async function handleFreehandFinish (geojson, layer, map, $emit, $q, overpassUrl, skipSnapping = false) {
   try {
     // center for reverse geocoding
@@ -75,15 +122,9 @@ export async function handleFreehandFinish (geojson, layer, map, $emit, $q, over
 }
 
 export async function fetchStreetGeometry (streetName, lat, lng, overpassUrl = 'https://overpass-api.de/api/interpreter') {
-  const query = `
-        [out:json][timeout:25];
-        way(around:5,${lat},${lng})["highway"];
-        (._;>;);
-        out geom;
-      `
+  const { json, url } = await raceOverpass(lat, lng, overpassUrl)
+  const data = json
 
-  const response = await fetch(overpassUrl, { method: 'POST', body: query })
-  const data = await response.json()
   console.log('Overpass data:', data)
   if (!data.elements || data.elements.length === 0) {
     throw new Error(`No geometry found for "${streetName}"`)
