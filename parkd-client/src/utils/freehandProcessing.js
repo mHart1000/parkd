@@ -122,7 +122,7 @@ export async function handleFreehandFinish (geojson, layer, map, $emit, $q, over
 }
 
 export async function fetchStreetGeometry (streetName, lat, lng, overpassUrl = 'https://overpass-api.de/api/interpreter') {
-  const { json, url } = await raceOverpass(lat, lng, overpassUrl)
+  const { json } = await raceOverpass(lat, lng, overpassUrl)
   const data = json
 
   console.log('Overpass data:', data)
