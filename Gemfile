@@ -54,6 +54,6 @@ gem "active_model_serializers", "~> 0.10.15"
 
 gem "web-push", "~> 3.0"
 
-gem "sidekiq", "~> 7.3"
+gem "sidekiq", "~> 8.1"
 
 gem "sidekiq-cron", "~> 2.3"
