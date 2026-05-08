@@ -12,6 +12,7 @@
             autofocus
             dense
             clearable
+            borderless
           />
 
           <q-input
@@ -20,23 +21,26 @@
             label="Password"
             dense
             clearable
+            borderless
           >
             <template v-slot:append>
               <q-btn
                 dense
                 flat
+                round
+                size="sm"
+                :icon="showPassword ? 'visibility_off' : 'visibility'"
                 @click="showPassword = !showPassword"
                 :aria-label="showPassword ? 'Hide password' : 'Show password'"
-              >
-                {{ showPassword ? 'Hide' : 'Show' }}
-              </q-btn>
+              />
             </template>
           </q-input>
-
         </q-form>
       </q-card-section>
-
-      <q-card-actions align="right">
+      <div class="text-center q-mt-md">
+        Don't have an account? <router-link to="/register" class="text-primary">Sign up</router-link>
+      </div>
+      <q-card-actions align="right" class="q-pa-sm">
         <q-btn label="Login" color="primary" @click="loginUser" />
       </q-card-actions>
     </q-card>
@@ -83,3 +87,15 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+:deep(.q-field__control) {
+  background-color: #68a3ab;
+  border-radius: 2px;
+  color: #2c2c2c;
+}
+
+:deep(.q-field__label) {
+  color: #2b2b2b !important;
+}
+</style>

@@ -12,28 +12,87 @@ const IGNORED_ROAD_TYPES = new Set([
   'steps', 'corridor', 'bridleway', 'construction'
 ])
 
-export async function handleBlockClick (e, overpassUrl, candidateLayers, $q, map, $emit, updateLayers) {
+// Mirrors keep block-select responsive when one Overpass instance is slow
+const OVERPASS_ENDPOINTS = [
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass-api.de/api/interpreter',
+  'https://lz4.overpass-api.de/api/interpreter'
+]
+
+function buildBlockQuery (lat, lng) {
+  // out; (default body) is required so each way carries its `nodes` ID array;
+  // out geom; would replace that with inline geometry and break the topology walk.
+  return `
+        [out:json][timeout:25];
+        way(around:250,${lat},${lng})["highway"];
+        (._;>;);
+        out;
+      `
+}
+
+async function raceOverpass (lat, lng, preferredUrl) {
+  const query = buildBlockQuery(lat, lng)
+  const endpoints = preferredUrl
+    ? [preferredUrl, ...OVERPASS_ENDPOINTS.filter(u => u !== preferredUrl)]
+    : OVERPASS_ENDPOINTS
+
+  const controllers = []
+  const attempts = endpoints.map(url => {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 3500)
+    controllers.push({ controller, timer })
+    return fetch(url, { method: 'POST', body: query, signal: controller.signal })
+      .then(res => {
+        const ct = res.headers.get('content-type') || ''
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        if (!ct.includes('application/json')) throw new Error('Non-JSON response')
+        return res.json()
+      })
+      .then(json => ({ json, url }))
+  })
+
+  // Promise.any resolves on the first fulfilled request, rejects only if all fail
+  try {
+    return await Promise.any(attempts)
+  } finally {
+    controllers.forEach(({ controller, timer }) => {
+      clearTimeout(timer)
+      controller.abort()
+    })
+  }
+}
+
+/**
+ * Handle a click in block-select mode. Queries Overpass (racing mirrors),
+ * computes the block via topology walk, draws the candidate highlight, and
+ * returns { candidateLayers, pending } so the caller can render its own
+ * confirm UI. `pending` is null when no block was found or fetch failed.
+ */
+export async function handleBlockClick (e, overpassUrl, candidateLayers, $q, map) {
   const { lat, lng } = e.latlng
 
   candidateLayers = clearCandidateLayers(candidateLayers, map)
 
   let data
   try {
-    data = await fetchOverpass(overpassUrl, lat, lng)
+    const { json, url } = await raceOverpass(lat, lng, overpassUrl)
+    data = json
+    console.info('[blockSelect] Overpass success via', url)
   } catch (err) {
+    console.warn('[blockSelect] Overpass failed:', err)
     $q.notify({
       type: 'negative',
-      message: err.message || "Couldn't reach map service. Please try again.",
+      message: 'Map service unavailable. Please try again.',
       timeout: 4000
     })
-    return candidateLayers
+    return { candidateLayers, pending: null }
   }
 
   const result = computeSmartBlock(data, lat, lng)
 
   if (!result) {
     $q.notify({ type: 'warning', message: 'No block found here. Try tapping closer to a street.' })
-    return candidateLayers
+    return { candidateLayers, pending: null }
   }
 
   const { block, crossStreets, streetName } = result
@@ -44,71 +103,9 @@ export async function handleBlockClick (e, overpassUrl, candidateLayers, $q, map
 
   candidateLayers.push(layer)
 
-  const crossStreetText = crossStreets.length === 2
-    ? `${streetName} between ${crossStreets[0]} and ${crossStreets[1]}`
-    : streetName
-
-  $q.notify({
-    type: 'info',
-    message: crossStreetText,
-    caption: 'Tap again to change, or confirm below',
-    timeout: 5000,
-    actions: [
-      {
-        label: 'Confirm',
-        color: 'white',
-        handler: async () => {
-          await confirmBlock(block, candidateLayers, map, $q, $emit, crossStreets, streetName)
-          if (typeof updateLayers === 'function') {
-            updateLayers([])
-          }
-        }
-      }
-    ]
-  })
-
-  return candidateLayers
-}
-
-async function fetchOverpass (overpassUrl, lat, lng) {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), 15000)
-
-  let res
-  try {
-    res = await fetch(overpassUrl, {
-      method: 'POST',
-      signal: controller.signal,
-      body: `
-          [out:json][timeout:25];
-          way(around:250,${lat},${lng})["highway"];
-          (._;>;);
-          out;
-        `
-    })
-  } catch (err) {
-    console.error('[blockSelect] Overpass fetch failed:', err)
-    if (err.name === 'AbortError') {
-      throw new Error('Map service timed out. Please try again.', { cause: err })
-    }
-    throw new Error("Couldn't reach map service. Check your connection.", { cause: err })
-  } finally {
-    clearTimeout(timer)
-  }
-
-  if (!res.ok) {
-    console.error('[blockSelect] Overpass returned non-ok status:', res.status, res.statusText)
-    if (res.status === 429) {
-      throw new Error('Map service is busy. Please wait a moment and try again.')
-    }
-    throw new Error(`Map service error (${res.status}). Please try again.`)
-  }
-
-  try {
-    return await res.json()
-  } catch (err) {
-    console.error('[blockSelect] Overpass response was not valid JSON:', err)
-    throw new Error('Map service returned invalid data. Please try again.', { cause: err })
+  return {
+    candidateLayers,
+    pending: { block, crossStreets, streetName }
   }
 }
 
