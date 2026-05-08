@@ -17,16 +17,17 @@ export async function handleBlockClick (e, overpassUrl, candidateLayers, $q, map
 
   candidateLayers = clearCandidateLayers(candidateLayers, map)
 
-  const res = await fetch(overpassUrl, {
-    method: 'POST',
-    body: `
-          [out:json][timeout:25];
-          way(around:250,${lat},${lng})["highway"];
-          (._;>;);
-          out;
-        `
-  })
-  const data = await res.json()
+  let data
+  try {
+    data = await fetchOverpass(overpassUrl, lat, lng)
+  } catch (err) {
+    $q.notify({
+      type: 'negative',
+      message: err.message || "Couldn't reach map service. Please try again.",
+      timeout: 4000
+    })
+    return candidateLayers
+  }
 
   const result = computeSmartBlock(data, lat, lng)
 
@@ -67,6 +68,48 @@ export async function handleBlockClick (e, overpassUrl, candidateLayers, $q, map
   })
 
   return candidateLayers
+}
+
+async function fetchOverpass (overpassUrl, lat, lng) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 15000)
+
+  let res
+  try {
+    res = await fetch(overpassUrl, {
+      method: 'POST',
+      signal: controller.signal,
+      body: `
+          [out:json][timeout:25];
+          way(around:250,${lat},${lng})["highway"];
+          (._;>;);
+          out;
+        `
+    })
+  } catch (err) {
+    console.error('[blockSelect] Overpass fetch failed:', err)
+    if (err.name === 'AbortError') {
+      throw new Error('Map service timed out. Please try again.', { cause: err })
+    }
+    throw new Error("Couldn't reach map service. Check your connection.", { cause: err })
+  } finally {
+    clearTimeout(timer)
+  }
+
+  if (!res.ok) {
+    console.error('[blockSelect] Overpass returned non-ok status:', res.status, res.statusText)
+    if (res.status === 429) {
+      throw new Error('Map service is busy. Please wait a moment and try again.')
+    }
+    throw new Error(`Map service error (${res.status}). Please try again.`)
+  }
+
+  try {
+    return await res.json()
+  } catch (err) {
+    console.error('[blockSelect] Overpass response was not valid JSON:', err)
+    throw new Error('Map service returned invalid data. Please try again.', { cause: err })
+  }
 }
 
 /**
@@ -275,8 +318,8 @@ export async function confirmBlock (block, candidateLayers, map, $q, $emit, cros
     })
     const data = await res.json()
     address = data.address || {}
-  } catch (e) {
-    // ignore, keep empty address
+  } catch (err) {
+    console.warn('[blockSelect] Nominatim reverse geocode failed:', err)
   }
 
   const finalStreetName = streetName || address.road || address.street || ''
