@@ -70,7 +70,7 @@ export default {
       if (this.pendingBlock) {
         const clickPt = turf.point([e.latlng.lng, e.latlng.lat])
         const dist = turf.pointToLineDistance(clickPt, this.pendingBlock.block, { units: 'meters' })
-        if (dist < 20) {
+        if (dist < 50) {
           await this.confirmPendingBlock()
           return
         }
