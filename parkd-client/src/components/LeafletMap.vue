@@ -11,7 +11,7 @@ import { Geolocation } from '@capacitor/geolocation'
 import * as turf from '@turf/turf'
 import { markRaw } from 'vue'
 import { createFreehandLine } from '../utils/freehandLineDraw.js'
-import { handleBlockClick } from '../utils/blockSelect.js'
+import { handleBlockClick, confirmBlock, clearCandidateLayers } from '../utils/blockSelect.js'
 import { handleFreehandFinish, drawBufferedShape, fetchStreetGeometry } from '../utils/freehandProcessing.js'
 
 const CLIENT_USER_AGENT = import.meta.env.VITE_CLIENT_USER_AGENT
@@ -32,6 +32,7 @@ export default {
       freehand: null,
       overpassUrl: 'https://overpass-api.de/api/interpreter',
       candidateLayers: [],
+      pendingBlock: null,
       currentParkingSpot: null,
       carIcon: L.divIcon({
         html: '<i class="fa-solid fa-car-side" style="font-size:24px;color:#0fe004"></i>',
@@ -64,15 +65,38 @@ export default {
     this.getLocation()
     this.populateMap()
     this._blockClickHandler = async e => {
-      this.candidateLayers = await handleBlockClick(
+      // If the user clicks on (or very near) the currently-highlighted block,
+      // treat it as confirmation. Otherwise compute a fresh candidate.
+      if (this.pendingBlock) {
+        const clickPt = turf.point([e.latlng.lng, e.latlng.lat])
+        const dist = turf.pointToLineDistance(clickPt, this.pendingBlock.block, { units: 'meters' })
+        if (dist < 50) {
+          await this.confirmPendingBlock()
+          return
+        }
+      }
+
+      const { candidateLayers, pending } = await handleBlockClick(
         e,
         this.overpassUrl,
         this.candidateLayers,
         this.$q,
-        this.map,
-        this.$emit,
-        updated => { this.candidateLayers = updated }
+        this.map
       )
+      this.candidateLayers = candidateLayers
+      this.pendingBlock = pending
+
+      if (pending) {
+        const text = pending.crossStreets.length === 2
+          ? `${pending.streetName} between ${pending.crossStreets[0]} and ${pending.crossStreets[1]}`
+          : pending.streetName
+        this.$q.notify({
+          type: 'info',
+          message: text,
+          caption: 'Tap the highlighted block again to confirm',
+          timeout: 5000
+        })
+      }
     }
     window.turf = turf // testing only
   },
@@ -106,6 +130,10 @@ export default {
         this.map.on('click', this._blockClickHandler)
       } else {
         this.map.off('click', this._blockClickHandler)
+        if (this.pendingBlock) {
+          this.candidateLayers = clearCandidateLayers(this.candidateLayers, this.map)
+          this.pendingBlock = null
+        }
       }
     }
   },
@@ -185,6 +213,13 @@ export default {
           this.safeRemoveLayer(layer)
         }
       })
+    },
+    async confirmPendingBlock () {
+      if (!this.pendingBlock) return
+      const { block, crossStreets, streetName } = this.pendingBlock
+      this.pendingBlock = null
+      await confirmBlock(block, this.candidateLayers, this.map, this.$q, this.$emit, crossStreets, streetName)
+      this.candidateLayers = []
     },
     startVertexMode () {
       if (!this.map || !this.map.pm) {
