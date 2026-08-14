@@ -34,6 +34,7 @@ export default {
       candidateLayers: [],
       pendingBlock: null,
       currentParkingSpot: null,
+      sectionLayerGroup: null,
       carIcon: L.divIcon({
         html: '<i class="fa-solid fa-car-side" style="font-size:24px;color:#0fe004"></i>',
         className: '',
@@ -140,6 +141,7 @@ export default {
   methods: {
     initMap () {
       this.map = markRaw(L.map('map').setView([this.lat, this.lng], 17))
+      this.sectionLayerGroup = markRaw(L.layerGroup().addTo(this.map))
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
@@ -170,7 +172,7 @@ export default {
       actionBars.forEach(el => el.remove())
 
       this.freehand = createFreehandLine(this.map, {
-        onFinish: (geojson, layer) => handleFreehandFinish(geojson, layer, this.map, this.$emit, this.$q, this.overpassUrl)
+        onFinish: (geojson, layer) => handleFreehandFinish(geojson, layer, this.sectionLayerGroup, this.$emit, this.$q, this.overpassUrl)
       })
 
       this.map.on('pm:create', async (e) => {
@@ -206,7 +208,7 @@ export default {
           }
         } else if (geojson.geometry.type === 'LineString') {
           // Vertex-drawn street section
-          await handleFreehandFinish(geojson, layer, this.map, this.$emit, this.$q, this.overpassUrl, true)
+          await handleFreehandFinish(geojson, layer, this.sectionLayerGroup, this.$emit, this.$q, this.overpassUrl, true)
           this.map.pm.disableDraw('Polyline')
           this.$q.notify({ type: 'positive', message: 'Street section created (vertex mode)' })
         } else {
@@ -316,17 +318,15 @@ export default {
         return false
       }
     },
-    populateMap () {
-      this.$api.get('/street_sections')
+    loadStreetSections () {
+      this.sectionLayerGroup.clearLayers()
+      return this.$api.get('/street_sections')
         .then(res => {
-          console.log('res', res)
-          console.log('res.data', res.data)
           const featureCollection = res.data
           L.geoJSON(featureCollection, {
-            onEachFeature: (feature, layer) => {
-              drawBufferedShape(feature.geometry, null, this.map)
-
-              layer.on('click', (e) => {
+            onEachFeature: (feature) => {
+              const { layer: bufferedLayer } = drawBufferedShape(feature.geometry, null, this.sectionLayerGroup)
+              bufferedLayer.on('click', () => {
                 if (this.placingParkingSpot) return
                 this.$emit('feature-clicked', feature)
               })
@@ -334,8 +334,11 @@ export default {
           })
         })
         .catch(err => {
-          console.error('[populateMap] Failed to load street sections:', err)
+          console.error('[loadStreetSections] Failed to load street sections:', err)
         })
+    },
+    populateMap () {
+      this.loadStreetSections()
       this.$api.get('/parking_spots', {
         params: { active: true }
       })

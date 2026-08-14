@@ -68,7 +68,7 @@ export async function handleFreehandFinish (geojson, layer, map, $emit, $q, over
 
     if (skipSnapping) {
       // Vertex mode: do not use Overpass or snapping, draw exactly what the user clicked
-      buffered = drawBufferedShape(geojson, layer, map)
+      buffered = drawBufferedShape(geojson, layer, map).buffered
       bearing = getBearing(geojson)
       streetDirection = cardinalDirection(bearing)
     } else {
@@ -98,7 +98,7 @@ export async function handleFreehandFinish (geojson, layer, map, $emit, $q, over
         )
         buffered = snapped.buffered
       } else {
-        buffered = drawBufferedShape(geojson, layer, map)
+        buffered = drawBufferedShape(geojson, layer, map).buffered
       }
     }
 
@@ -222,12 +222,12 @@ export function drawBufferedShape (geojson, layer, map) {
 
   if (layer && typeof layer.remove === 'function') layer.remove()
 
-  L.geoJSON(buffered, {
+  const bufferedLayer = L.geoJSON(buffered, {
     style: {
       color: '#4A90E2',
       fillColor: '#4A90E2',
       fillOpacity: 0.4
     }
   }).addTo(map)
-  return buffered
+  return { buffered, layer: bufferedLayer }
 }

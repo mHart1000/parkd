@@ -213,6 +213,7 @@ export default {
         this.showRulePopup = false
         this.activeTool = null
         this.$q.notify({ type: 'positive', message: 'Rules saved!' })
+        this.$refs.leafletMap.loadStreetSections()
       } catch (err) {
         console.error('[handleSaveRules] Error saving:', err)
         this.$q.notify({ type: 'negative', message: 'Error saving rules' })
