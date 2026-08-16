@@ -2,14 +2,14 @@
 
 one:
   street_section: one
-  start_time: 2025-04-20 00:55:22
-  end_time: 2025-04-20 00:55:22
-  day_of_week: MyString
-  ordinal: 1
+  start_time: "09:00:00"
+  end_time: "10:00:00"
+  day_of_week: Monday
+  ordinal: []
 
 two:
   street_section: two
-  start_time: 2025-04-20 00:55:22
-  end_time: 2025-04-20 00:55:22
-  day_of_week: MyString
-  ordinal: 1
+  start_time: "11:00:00"
+  end_time: "12:00:00"
+  day_of_week: Friday
+  ordinal: []

@@ -1,6 +1,22 @@
 ENV["RAILS_ENV"] ||= "test"
 require_relative "../config/environment"
 require "rails/test_help"
+require "minitest/mock"
+
+module AuthenticationTestHelper
+  def sign_in_token(user = users(:one), password: "Password1!")
+    post user_session_path,
+      params: { user: { email: user.email, password: password } },
+      as: :json
+
+    assert_response :ok
+    JSON.parse(response.body).fetch("token")
+  end
+
+  def bearer_headers(token)
+    { "Authorization" => "Bearer #{token}" }
+  end
+end
 
 module ActiveSupport
   class TestCase
@@ -12,4 +28,8 @@ module ActiveSupport
 
     # Add more helper methods to be used by all tests here...
   end
+end
+
+class ActionDispatch::IntegrationTest
+  include AuthenticationTestHelper
 end
