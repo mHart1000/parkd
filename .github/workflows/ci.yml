@@ -54,8 +54,12 @@ jobs:
           --health-retries 5
     env:
       RAILS_ENV: test
+      CLIENT_URL: https://client.example.test
       PARKD_DATABASE_USER: postgres
+      PARKD_DATABASE_NAME: parkd_test
       PARKD_TEST_DATABASE_NAME: parkd_test
+      PARKD_DATABASE_PASSWORD: postgres
+      PARKD_DATABASE_HOST: 127.0.0.1
       PGHOST: 127.0.0.1
       PGPASSWORD: postgres
     steps:
