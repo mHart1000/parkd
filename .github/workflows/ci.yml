@@ -55,6 +55,7 @@ jobs:
     env:
       RAILS_ENV: test
       CLIENT_URL: https://client.example.test
+      DEVISE_JWT_SECRET_KEY: test-only-jwt-secret-test-only-jwt-secret-test-only-jwt-secret-01
       PARKD_DATABASE_USER: postgres
       PARKD_DATABASE_NAME: parkd_test
       PARKD_TEST_DATABASE_NAME: parkd_test
