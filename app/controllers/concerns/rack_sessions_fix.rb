@@ -3,7 +3,7 @@ module RackSessionsFix
 
   class FakeRackSession < Hash
     def enabled?; false; end
-    def destroy; end
+    def destroy(*); end
   end
 
   included do

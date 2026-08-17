@@ -17,7 +17,7 @@ class Api::PushSubscriptionsController < Api::ApiController
     if subscription.save
       head :ok
     else
-      render json: { errors: subscription.errors.full_messages }, status: :unprocessable_entity
+      render json: { errors: subscription.errors.full_messages }, status: :unprocessable_content
     end
   end
 

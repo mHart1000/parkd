@@ -32,7 +32,7 @@ module Api
         coords = section_params[:geometry]["coordinates"]
 
         if coords.length < 2
-          return render json: { error: "Invalid line: must have at least 2 points" }, status: :unprocessable_entity
+          return render json: { error: "Invalid line: must have at least 2 points" }, status: :unprocessable_content
         end
 
         line = factory.line_string(coords.map { |lng, lat| factory.point(lng, lat) })
@@ -44,7 +44,7 @@ module Api
       if section.save
         render json: section, status: :created
       else
-        render json: { errors: section.errors.full_messages }, status: :unprocessable_entity
+        render json: { errors: section.errors.full_messages }, status: :unprocessable_content
       end
     end
 
@@ -56,7 +56,7 @@ module Api
       if section.update(street_section_params)
         render json: section
       else
-        render json: { errors: section.errors.full_messages }, status: :unprocessable_entity
+        render json: { errors: section.errors.full_messages }, status: :unprocessable_content
       end
     end
 
