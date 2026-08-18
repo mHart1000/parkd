@@ -42,7 +42,7 @@ group :development, :test do
   gem "dotenv-rails"
 
   # Rails 7.2 and 8.1 test integration does not yet support Minitest 6.
-  gem "minitest", "~> 5.27"
+  gem "minitest", "~> 6.0"
 end
 
 
