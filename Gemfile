@@ -59,4 +59,4 @@ gem "web-push", "~> 3.0"
 
 gem "sidekiq", "~> 7.3.10"
 
-gem "sidekiq-cron", "~> 2.3"
+gem "sidekiq-cron", "~> 2.4"
