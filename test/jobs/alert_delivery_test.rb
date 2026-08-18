@@ -2,6 +2,11 @@ require "test_helper"
 require "sidekiq/testing"
 
 class AlertDeliveryTest < ActiveSupport::TestCase
+  WEBPUSH_CREDENTIALS = {
+    public_key: "test-public-key",
+    private_key: "test-private-key"
+  }.freeze
+
   setup do
     Sidekiq::Testing.fake!
     PushNotificationJob.clear
@@ -64,8 +69,10 @@ class AlertDeliveryTest < ActiveSupport::TestCase
     alert, subscription = delivery_fixture
     payload = nil
 
-    WebPush.stub(:payload_send, ->(**options) { payload = options }) do
-      PushNotificationJob.new.perform(subscription.id, { "title" => "Parkd" }, alert.id)
+    with_webpush_credentials do
+      WebPush.stub(:payload_send, ->(**options) { payload = options }) do
+        PushNotificationJob.new.perform(subscription.id, { "title" => "Parkd" }, alert.id)
+      end
     end
 
     alert.reload
@@ -73,6 +80,7 @@ class AlertDeliveryTest < ActiveSupport::TestCase
     assert alert.sent_at
     assert_equal subscription.endpoint, payload.fetch(:endpoint)
     assert_equal({ "title" => "Parkd" }.to_json, payload.fetch(:message))
+    assert_equal WEBPUSH_CREDENTIALS, payload.fetch(:vapid).slice(:public_key, :private_key)
   end
 
   test "recoverable Web Push failure leaves the alert unsent" do
@@ -80,9 +88,11 @@ class AlertDeliveryTest < ActiveSupport::TestCase
     response = Struct.new(:body).new("gone")
     error = WebPush::InvalidSubscription.new(response, "push.example.test")
 
-    WebPush.stub(:payload_send, ->(**) { raise error }) do
-      assert_nothing_raised do
-        PushNotificationJob.new.perform(subscription.id, { "title" => "Parkd" }, alert.id)
+    with_webpush_credentials do
+      WebPush.stub(:payload_send, ->(**) { raise error }) do
+        assert_nothing_raised do
+          PushNotificationJob.new.perform(subscription.id, { "title" => "Parkd" }, alert.id)
+        end
       end
     end
 
@@ -92,6 +102,10 @@ class AlertDeliveryTest < ActiveSupport::TestCase
   end
 
   private
+
+  def with_webpush_credentials(&block)
+    Rails.application.credentials.stub(:webpush, WEBPUSH_CREDENTIALS, &block)
+  end
 
   def spatial_rule_fixture
     factory = RGeo::Geographic.spherical_factory(srid: 4326)
