@@ -16,7 +16,7 @@ class Api::ParkingRulesController < Api::ApiController
     if rule.update(parking_rule_params)
       render json: rule
     else
-      render json: { errors: rule.errors.full_messages }, status: :unprocessable_entity
+      render json: { errors: rule.errors.full_messages }, status: :unprocessable_content
     end
   end
 

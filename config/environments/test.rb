@@ -47,8 +47,8 @@ Rails.application.configure do
   # incoming request so you'll need to provide the :host parameter yourself.
   config.action_mailer.default_url_options = { host: "www.example.com" }
 
-  # Print deprecation notices to the stderr.
-  config.active_support.deprecation = :stderr
+  # Treat framework deprecations as upgrade blockers.
+  config.active_support.deprecation = :raise
 
   # Raise exceptions for disallowed deprecations.
   config.active_support.disallowed_deprecation = :raise

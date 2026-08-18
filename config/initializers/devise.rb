@@ -301,7 +301,7 @@ Devise.setup do |config|
   # apps is `200 OK` and `302 Found` respectively, but new apps are generated with
   # these new defaults that match Hotwire/Turbo behavior.
   # Note: These might become the new default in future versions of Devise.
-  config.responder.error_status = :unprocessable_entity
+  config.responder.error_status = :unprocessable_content
   config.responder.redirect_status = :see_other
 
   # ==> Configuration for :registerable
@@ -311,7 +311,9 @@ Devise.setup do |config|
   # config.sign_in_after_change_password = true
 
   config.jwt do |jwt|
-    jwt.secret = Rails.application.credentials.jwt_secret_key!
+    jwt.secret = ENV.fetch("DEVISE_JWT_SECRET_KEY") do
+      Rails.application.credentials.jwt_secret_key!
+    end
     jwt.dispatch_requests = [ [ "POST", %r{^/api/users/sign_in$} ] ]
     jwt.revocation_requests = [ [ "DELETE", %r{^/api/users/sign_out$} ] ]
     jwt.expiration_time = 1.days.to_i

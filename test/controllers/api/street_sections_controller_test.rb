@@ -1,28 +1,54 @@
 require "test_helper"
 
 class Api::StreetSectionsControllerTest < ActionDispatch::IntegrationTest
-  test "should get index" do
-    get api_street_sections_index_url
-    assert_response :success
+  test "authentication is required" do
+    get api_street_sections_path, as: :json
+
+    assert_response :unauthorized
+    assert_equal({ "error" => "Invalid credentials" }, JSON.parse(response.body))
   end
 
-  test "should get create" do
-    get api_street_sections_create_url
-    assert_response :success
+  test "creates a LineString without changing longitude latitude ordering" do
+    token = sign_in_token
+
+    assert_difference -> { users(:one).street_sections.count }, 1 do
+      post api_street_sections_path,
+        params: {
+          street_section: {
+            geometry: {
+              type: "LineString",
+              coordinates: [ [ -122.4194, 37.7749 ], [ -122.4193, 37.7750 ] ]
+            },
+            side_of_street: "right"
+          }
+        },
+        headers: bearer_headers(token),
+        as: :json
+    end
+
+    assert_response :created
+    geometry = users(:one).street_sections.order(:id).last.geometry
+    assert_equal 4326, geometry.srid
+    assert_equal [ -122.4194, 37.7749 ], geometry.point_n(0).coordinates
+    assert_equal [ -122.4193, 37.775 ], geometry.point_n(1).coordinates
   end
 
-  test "should get show" do
-    get api_street_sections_show_url
-    assert_response :success
-  end
+  test "rejects a one-point line with the stable 422 status" do
+    token = sign_in_token
 
-  test "should get update" do
-    get api_street_sections_update_url
-    assert_response :success
-  end
+    assert_no_difference -> { users(:one).street_sections.count } do
+      post api_street_sections_path,
+        params: {
+          street_section: {
+            geometry: { type: "LineString", coordinates: [ [ -122.4194, 37.7749 ] ] }
+          }
+        },
+        headers: bearer_headers(token),
+        as: :json
+    end
 
-  test "should get destroy" do
-    get api_street_sections_destroy_url
-    assert_response :success
+    assert_response :unprocessable_content
+    assert_equal 422, response.status
+    assert_equal "Invalid line: must have at least 2 points", JSON.parse(response.body).fetch("error")
   end
 end

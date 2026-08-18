@@ -11,3 +11,4 @@ config/credentials.yml.enc diff=rails_credentials
 
 # Encrypt all planning docs with git-crypt
 docs/** filter=git-crypt diff=git-crypt
+AGENTS.md filter=git-crypt diff=git-crypt

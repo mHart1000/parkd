@@ -19,7 +19,7 @@ jobs:
           bundler-cache: true
 
       - name: Run Brakeman
-        run: bundle exec brakeman --no-pager
+        run: bin/brakeman --no-pager
 
   lint:
     runs-on: ubuntu-latest
@@ -36,6 +36,57 @@ jobs:
       - name: Run Rubocop
         run: bundle exec rubocop -f github
 
-  # test:
-  #   runs-on: ubuntu-latest
-  #   ...
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_DB: parkd_test
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d parkd_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      RAILS_ENV: test
+      CLIENT_URL: https://client.example.test
+      DEVISE_JWT_SECRET_KEY: test-only-jwt-secret-test-only-jwt-secret-test-only-jwt-secret-01
+      PARKD_DATABASE_USER: postgres
+      PARKD_DATABASE_NAME: parkd_test
+      PARKD_TEST_DATABASE_NAME: parkd_test
+      PARKD_DATABASE_PASSWORD: postgres
+      PARKD_DATABASE_HOST: 127.0.0.1
+      PGHOST: 127.0.0.1
+      PGPASSWORD: postgres
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          bundler-cache: true
+
+      - name: Load PostGIS schema
+        run: bin/rails db:schema:load
+
+      - name: Run Rails tests
+        run: bin/rails test
+
+      - name: Check Zeitwerk eager loading
+        run: bin/rails zeitwerk:check
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build production image
+        run: docker build --tag parkd:ci .

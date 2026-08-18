@@ -1,7 +1,7 @@
 source "https://rubygems.org"
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
-gem "rails", "~> 7.2.1"
+gem "rails", "~> 8.1.3", ">= 8.1.3.1"
 # Use postgresql as the database for Active Record
 gem "pg", "~> 1.1"
 # Use the Puma web server [https://github.com/puma/puma]
@@ -34,26 +34,29 @@ group :development, :test do
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
 
   # Static analysis for security vulnerabilities [https://brakemanscanner.org/]
-  gem "brakeman", require: false
+  gem "brakeman", "~> 7.0", "< 8", require: false
 
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
 
   gem "dotenv-rails"
+
+  # Rails 7.2 and 8.1 test integration does not yet support Minitest 6.
+  gem "minitest", "~> 5.27"
 end
 
 
 gem "rack-cors"
-gem "devise"
-gem "devise-jwt"
+gem "devise", "~> 5.0.4"
+gem "devise-jwt", "~> 0.13.0"
 gem "rgeo"
 gem "rgeo-geojson"
-gem "activerecord-postgis-adapter"
+gem "activerecord-postgis-adapter", "~> 11.1.1"
 
-gem "active_model_serializers", "~> 0.10.15"
+gem "active_model_serializers", "~> 0.10.16"
 
 gem "web-push", "~> 3.0"
 
-gem "sidekiq", "~> 7.3"
+gem "sidekiq", "~> 7.3.10"
 
 gem "sidekiq-cron", "~> 2.3"

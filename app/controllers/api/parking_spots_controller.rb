@@ -28,7 +28,7 @@ class Api::ParkingSpotsController < Api::ApiController
     if spot.save
       render json: spot, status: :created
     else
-      render json: { errors: spot.errors.full_messages }, status: :unprocessable_entity
+      render json: { errors: spot.errors.full_messages }, status: :unprocessable_content
     end
   end
 

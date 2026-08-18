@@ -8,7 +8,7 @@ module Api
       if current_user.update(user_params)
         render json: current_user, serializer: UserSerializer
       else
-        render_error(current_user.errors.full_messages.join(", "), :unprocessable_entity)
+        render_error(current_user.errors.full_messages.join(", "), :unprocessable_content)
       end
     end
 
