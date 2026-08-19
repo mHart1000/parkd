@@ -55,7 +55,7 @@ gem "activerecord-postgis-adapter", "~> 11.1.1"
 
 gem "active_model_serializers", "~> 0.10.16"
 
-gem "web-push", "~> 3.0"
+gem "web-push", "~> 3.1"
 
 gem "sidekiq", "~> 7.3.10"
 
