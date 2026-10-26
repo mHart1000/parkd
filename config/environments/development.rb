@@ -17,6 +17,12 @@ Rails.application.configure do
   # Enable server timing.
   config.server_timing = true
 
+  # Allow explicitly configured development hostnames, such as a private
+  # Tailscale Serve address, without disabling Host Authorization entirely.
+  ENV.fetch("RAILS_DEVELOPMENT_HOSTS", "").split(",").each do |host|
+    config.hosts << host.strip if host.present?
+  end
+
   # Enable/disable caching. By default caching is disabled.
   # Run rails dev:cache to toggle caching.
   if Rails.root.join("tmp/caching-dev.txt").exist?
