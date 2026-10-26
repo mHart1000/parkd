@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="show">
-    <q-card style="min-width: 400px">
+    <q-card class="rule-card">
       <q-card-section>
         <div class="text-h6">Parking Rules</div>
         <div v-if="streetName || streetDirection || address || city" class="q-mt-sm q-mb-sm">
@@ -108,3 +108,10 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+.rule-card {
+  width: 400px;
+  max-width: calc(100vw - 32px);
+}
+</style>

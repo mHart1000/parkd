@@ -17,8 +17,7 @@ Rails.application.configure do
   # Enable server timing.
   config.server_timing = true
 
-  # Allow explicitly configured development hostnames, such as a private
-  # Tailscale Serve address, without disabling Host Authorization entirely.
+  # Allow explicitly configured development hostnames
   ENV.fetch("RAILS_DEVELOPMENT_HOSTS", "").split(",").each do |host|
     config.hosts << host.strip if host.present?
   end
