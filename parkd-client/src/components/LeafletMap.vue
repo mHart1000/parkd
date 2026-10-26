@@ -1,5 +1,5 @@
 <template>
-  <div id="map" style="width: 500px; height: 400px;"></div>
+  <div id="map" class="map-container"></div>
 </template>
 
 <script>
@@ -365,3 +365,16 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+.map-container {
+  width: 100%;
+  height: 400px;
+}
+
+@media (max-width: 599px) {
+  .map-container {
+    height: min(400px, 55vh);
+  }
+}
+</style>
