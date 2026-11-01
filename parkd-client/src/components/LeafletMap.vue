@@ -66,36 +66,45 @@ export default {
     this.getLocation()
     this.populateMap()
     this._blockClickHandler = async e => {
-      // If the user clicks on (or very near) the currently-highlighted block,
-      // treat it as confirmation. Otherwise compute a fresh candidate.
-      if (this.pendingBlock) {
-        const clickPt = turf.point([e.latlng.lng, e.latlng.lat])
-        const dist = turf.pointToLineDistance(clickPt, this.pendingBlock.block, { units: 'meters' })
-        if (dist < 50) {
-          await this.confirmPendingBlock()
-          return
+      try {
+        // If the user clicks on (or very near) the currently-highlighted block,
+        // treat it as confirmation. Otherwise compute a fresh candidate.
+        if (this.pendingBlock) {
+          const clickPt = turf.point([e.latlng.lng, e.latlng.lat])
+          const dist = turf.pointToLineDistance(clickPt, this.pendingBlock.block, { units: 'meters' })
+          if (dist < 50) {
+            await this.confirmPendingBlock()
+            return
+          }
         }
-      }
 
-      const { candidateLayers, pending } = await handleBlockClick(
-        e,
-        this.overpassUrl,
-        this.candidateLayers,
-        this.$q,
-        this.map
-      )
-      this.candidateLayers = candidateLayers
-      this.pendingBlock = pending
+        const { candidateLayers, pending } = await handleBlockClick(
+          e,
+          this.overpassUrl,
+          this.candidateLayers,
+          this.$q,
+          this.map
+        )
+        this.candidateLayers = candidateLayers
+        this.pendingBlock = pending
 
-      if (pending) {
-        const text = pending.crossStreets.length === 2
-          ? `${pending.streetName} between ${pending.crossStreets[0]} and ${pending.crossStreets[1]}`
-          : pending.streetName
+        if (pending) {
+          const text = pending.crossStreets.length === 2
+            ? `${pending.streetName} between ${pending.crossStreets[0]} and ${pending.crossStreets[1]}`
+            : pending.streetName
+          this.$q.notify({
+            type: 'info',
+            message: text,
+            caption: 'Tap the highlighted block again to confirm',
+            timeout: 5000
+          })
+        }
+      } catch (err) {
+        console.error('[LeafletMap] Unexpected block-select failure:', err)
         this.$q.notify({
-          type: 'info',
-          message: text,
-          caption: 'Tap the highlighted block again to confirm',
-          timeout: 5000
+          type: 'negative',
+          message: 'Block selection failed. Please try again.',
+          timeout: 4000
         })
       }
     }

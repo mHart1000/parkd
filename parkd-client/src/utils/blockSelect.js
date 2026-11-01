@@ -44,11 +44,15 @@ async function raceOverpass (lat, lng, preferredUrl) {
     return fetch(url, { method: 'POST', body: query, signal: controller.signal })
       .then(res => {
         const ct = res.headers.get('content-type') || ''
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        if (!ct.includes('application/json')) throw new Error('Non-JSON response')
+        if (!res.ok) throw new Error(`${url} returned HTTP ${res.status}`)
+        if (!ct.includes('application/json')) throw new Error(`${url} returned ${ct || 'an unknown content type'} instead of JSON`)
         return res.json()
       })
       .then(json => ({ json, url }))
+      .catch(err => {
+        console.warn(`[blockSelect] Overpass request failed for ${url}:`, err)
+        throw err
+      })
   })
 
   // Promise.any resolves on the first fulfilled request, rejects only if all fail
@@ -79,7 +83,8 @@ export async function handleBlockClick (e, overpassUrl, candidateLayers, $q, map
     data = json
     console.info('[blockSelect] Overpass success via', url)
   } catch (err) {
-    console.warn('[blockSelect] Overpass failed:', err)
+    const causes = Array.isArray(err?.errors) ? err.errors : []
+    console.error('[blockSelect] All Overpass endpoints failed:', err, causes)
     $q.notify({
       type: 'negative',
       message: 'Map service unavailable. Please try again.',
@@ -88,7 +93,18 @@ export async function handleBlockClick (e, overpassUrl, candidateLayers, $q, map
     return { candidateLayers, pending: null }
   }
 
-  const result = computeSmartBlock(data, lat, lng)
+  let result
+  try {
+    result = computeSmartBlock(data, lat, lng)
+  } catch (err) {
+    console.error('[blockSelect] Failed to process map service response:', err, data)
+    $q.notify({
+      type: 'negative',
+      message: 'Could not process map data. Please try again.',
+      timeout: 4000
+    })
+    return { candidateLayers, pending: null }
+  }
 
   if (!result) {
     $q.notify({ type: 'warning', message: 'No block found here. Try tapping closer to a street.' })
@@ -97,9 +113,20 @@ export async function handleBlockClick (e, overpassUrl, candidateLayers, $q, map
 
   const { block, crossStreets, streetName } = result
 
-  const layer = L.geoJSON(block, {
-    style: { color: '#4A90E2', weight: 8, opacity: 0.9 }
-  }).addTo(map)
+  let layer
+  try {
+    layer = L.geoJSON(block, {
+      style: { color: '#4A90E2', weight: 8, opacity: 0.9 }
+    }).addTo(map)
+  } catch (err) {
+    console.error('[blockSelect] Failed to render candidate block:', err, block)
+    $q.notify({
+      type: 'negative',
+      message: 'Could not display this block. Please try again.',
+      timeout: 4000
+    })
+    return { candidateLayers, pending: null }
+  }
 
   candidateLayers.push(layer)
 
@@ -313,10 +340,16 @@ export async function confirmBlock (block, candidateLayers, map, $q, $emit, cros
     const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`, {
       headers: { 'User-Agent': ua }
     })
+    if (!res.ok) throw new Error(`Nominatim returned HTTP ${res.status}`)
     const data = await res.json()
     address = data.address || {}
   } catch (err) {
-    console.warn('[blockSelect] Nominatim reverse geocode failed:', err)
+    console.error('[blockSelect] Nominatim reverse geocode failed:', err)
+    $q.notify({
+      type: 'warning',
+      message: 'Block selected, but its address could not be loaded.',
+      timeout: 4000
+    })
   }
 
   const finalStreetName = streetName || address.road || address.street || ''
