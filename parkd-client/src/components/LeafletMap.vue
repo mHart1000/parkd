@@ -30,7 +30,8 @@ export default {
       lat: 32.73,
       lng: -117.16,
       freehand: null,
-      overpassUrl: 'https://overpass-api.de/api/interpreter',
+      overpassUrl: null,
+      blockSelectRequestPending: false,
       candidateLayers: [],
       pendingBlock: null,
       currentParkingSpot: null,
@@ -66,6 +67,9 @@ export default {
     this.getLocation()
     this.populateMap()
     this._blockClickHandler = async e => {
+      if (this.blockSelectRequestPending) return
+
+      this.blockSelectRequestPending = true
       try {
         // If the user clicks on (or very near) the currently-highlighted block,
         // treat it as confirmation. Otherwise compute a fresh candidate.
@@ -106,6 +110,8 @@ export default {
           message: 'Block selection failed. Please try again.',
           timeout: 4000
         })
+      } finally {
+        this.blockSelectRequestPending = false
       }
     }
     window.turf = turf // testing only
@@ -137,6 +143,7 @@ export default {
     blockSelectActive (val) {
       if (val) {
         this.$q.notify({ type: 'info', message: 'Block-select mode: click a street to highlight blocks' })
+        this.map.off('click', this._blockClickHandler)
         this.map.on('click', this._blockClickHandler)
       } else {
         this.map.off('click', this._blockClickHandler)
@@ -145,6 +152,11 @@ export default {
           this.pendingBlock = null
         }
       }
+    }
+  },
+  beforeUnmount () {
+    if (this.map && this._blockClickHandler) {
+      this.map.off('click', this._blockClickHandler)
     }
   },
   methods: {

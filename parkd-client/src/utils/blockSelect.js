@@ -14,10 +14,12 @@ const IGNORED_ROAD_TYPES = new Set([
 
 // Mirrors keep block-select responsive when one Overpass instance is slow
 const OVERPASS_ENDPOINTS = [
-  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter',
   'https://overpass-api.de/api/interpreter',
-  'https://lz4.overpass-api.de/api/interpreter'
+  'https://maps.mail.ru/osm/tools/overpass/api/interpreter'
 ]
+const OVERPASS_TIMEOUT_MS = 15000
+const OSM_MAP_URL = 'https://api.openstreetmap.org/api/0.6/map'
 
 function buildBlockQuery (lat, lng) {
   // out; (default body) is required so each way carries its `nodes` ID array;
@@ -30,34 +32,117 @@ function buildBlockQuery (lat, lng) {
       `
 }
 
-async function raceOverpass (lat, lng, preferredUrl) {
+function fetchOsmMapData (lat, lng, controller) {
+  const radiusMeters = 300
+  const latDelta = radiusMeters / 111320
+  const lngDelta = radiusMeters / (111320 * Math.cos(lat * Math.PI / 180))
+  const bbox = [lng - lngDelta, lat - latDelta, lng + lngDelta, lat + latDelta].join(',')
+  const url = `${OSM_MAP_URL}?bbox=${bbox}`
+
+  return fetch(url, {
+    headers: { Accept: 'application/xml' },
+    signal: controller.signal
+  })
+    .then(res => {
+      if (!res.ok) throw new Error(`${OSM_MAP_URL} returned HTTP ${res.status}`)
+      return res.text()
+    })
+    .then(xml => {
+      const document = new DOMParser().parseFromString(xml, 'application/xml')
+      if (document.querySelector('parsererror')) {
+        throw new Error(`${OSM_MAP_URL} returned invalid XML`)
+      }
+
+      const nodes = Array.from(document.querySelectorAll('node')).map(node => ({
+        type: 'node',
+        id: node.getAttribute('id'),
+        lat: Number(node.getAttribute('lat')),
+        lon: Number(node.getAttribute('lon'))
+      }))
+      const ways = Array.from(document.querySelectorAll('way')).map(way => {
+        const tags = Object.fromEntries(Array.from(way.querySelectorAll(':scope > tag')).map(tag => [
+          tag.getAttribute('k'),
+          tag.getAttribute('v')
+        ]))
+        return {
+          type: 'way',
+          id: way.getAttribute('id'),
+          nodes: Array.from(way.querySelectorAll(':scope > nd')).map(node => node.getAttribute('ref')),
+          tags
+        }
+      }).filter(way => way.tags.highway)
+
+      if (!ways.length) {
+        throw new Error(`${OSM_MAP_URL} returned no streets for the selected area`)
+      }
+
+      return { json: { elements: [...nodes, ...ways] }, url: OSM_MAP_URL }
+    })
+}
+
+async function raceMapServices (lat, lng, preferredUrl) {
   const query = buildBlockQuery(lat, lng)
   const endpoints = preferredUrl
     ? [preferredUrl, ...OVERPASS_ENDPOINTS.filter(u => u !== preferredUrl)]
     : OVERPASS_ENDPOINTS
 
   const controllers = []
+  let raceSucceeded = false
   const attempts = endpoints.map(url => {
     const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), 3500)
+    const timer = setTimeout(() => {
+      controller.abort(new Error(`Request timed out after ${OVERPASS_TIMEOUT_MS / 1000} seconds`))
+    }, OVERPASS_TIMEOUT_MS)
     controllers.push({ controller, timer })
-    return fetch(url, { method: 'POST', body: query, signal: controller.signal })
+    return fetch(url, {
+      method: 'POST',
+      body: `data=${encodeURIComponent(query)}`,
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+      },
+      signal: controller.signal
+    })
       .then(res => {
         const ct = res.headers.get('content-type') || ''
         if (!res.ok) throw new Error(`${url} returned HTTP ${res.status}`)
         if (!ct.includes('application/json')) throw new Error(`${url} returned ${ct || 'an unknown content type'} instead of JSON`)
         return res.json()
       })
-      .then(json => ({ json, url }))
+      .then(json => {
+        if (!Array.isArray(json?.elements)) {
+          throw new Error(`${url} returned an invalid Overpass payload`)
+        }
+        if (!json.elements.length) {
+          throw new Error(`${url} returned no map elements for the selected area`)
+        }
+        return { json, url }
+      })
       .catch(err => {
-        console.warn(`[blockSelect] Overpass request failed for ${url}:`, err)
+        if (!raceSucceeded) {
+          console.warn(`[blockSelect] Overpass request failed for ${url}:`, controller.signal.reason || err)
+        }
         throw err
       })
   })
 
+  const osmController = new AbortController()
+  const osmTimer = setTimeout(() => {
+    osmController.abort(new Error(`Request timed out after ${OVERPASS_TIMEOUT_MS / 1000} seconds`))
+  }, OVERPASS_TIMEOUT_MS)
+  controllers.push({ controller: osmController, timer: osmTimer })
+  attempts.push(fetchOsmMapData(lat, lng, osmController).catch(err => {
+    if (!raceSucceeded) {
+      console.warn(`[blockSelect] OSM map fallback failed for ${OSM_MAP_URL}:`, osmController.signal.reason || err)
+    }
+    throw err
+  }))
+
   // Promise.any resolves on the first fulfilled request, rejects only if all fail
   try {
-    return await Promise.any(attempts)
+    const result = await Promise.any(attempts)
+    raceSucceeded = true
+    return result
   } finally {
     controllers.forEach(({ controller, timer }) => {
       clearTimeout(timer)
@@ -79,12 +164,12 @@ export async function handleBlockClick (e, overpassUrl, candidateLayers, $q, map
 
   let data
   try {
-    const { json, url } = await raceOverpass(lat, lng, overpassUrl)
+    const { json, url } = await raceMapServices(lat, lng, overpassUrl)
     data = json
-    console.info('[blockSelect] Overpass success via', url)
+    console.info('[blockSelect] Map data loaded via', url)
   } catch (err) {
     const causes = Array.isArray(err?.errors) ? err.errors : []
-    console.error('[blockSelect] All Overpass endpoints failed:', err, causes)
+    console.error('[blockSelect] All map data endpoints failed:', err, causes)
     $q.notify({
       type: 'negative',
       message: 'Map service unavailable. Please try again.',
@@ -107,6 +192,14 @@ export async function handleBlockClick (e, overpassUrl, candidateLayers, $q, map
   }
 
   if (!result) {
+    const elementTypes = data.elements.reduce((counts, element) => {
+      counts[element.type] = (counts[element.type] || 0) + 1
+      return counts
+    }, {})
+    console.warn('[blockSelect] No block could be derived from map data:', {
+      click: { lat, lng },
+      elementTypes
+    })
     $q.notify({ type: 'warning', message: 'No block found here. Try tapping closer to a street.' })
     return { candidateLayers, pending: null }
   }
