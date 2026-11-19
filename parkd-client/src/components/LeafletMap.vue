@@ -1,5 +1,5 @@
 <template>
-  <div id="map" style="width: 500px; height: 400px;"></div>
+  <div id="map" class="map-container"></div>
 </template>
 
 <script>
@@ -30,7 +30,8 @@ export default {
       lat: 32.73,
       lng: -117.16,
       freehand: null,
-      overpassUrl: 'https://overpass-api.de/api/interpreter',
+      overpassUrl: null,
+      blockSelectRequestPending: false,
       candidateLayers: [],
       pendingBlock: null,
       currentParkingSpot: null,
@@ -66,37 +67,51 @@ export default {
     this.getLocation()
     this.populateMap()
     this._blockClickHandler = async e => {
-      // If the user clicks on (or very near) the currently-highlighted block,
-      // treat it as confirmation. Otherwise compute a fresh candidate.
-      if (this.pendingBlock) {
-        const clickPt = turf.point([e.latlng.lng, e.latlng.lat])
-        const dist = turf.pointToLineDistance(clickPt, this.pendingBlock.block, { units: 'meters' })
-        if (dist < 50) {
-          await this.confirmPendingBlock()
-          return
+      if (this.blockSelectRequestPending) return
+
+      this.blockSelectRequestPending = true
+      try {
+        // If the user clicks on (or very near) the currently-highlighted block,
+        // treat it as confirmation. Otherwise compute a fresh candidate.
+        if (this.pendingBlock) {
+          const clickPt = turf.point([e.latlng.lng, e.latlng.lat])
+          const dist = turf.pointToLineDistance(clickPt, this.pendingBlock.block, { units: 'meters' })
+          if (dist < 50) {
+            await this.confirmPendingBlock()
+            return
+          }
         }
-      }
 
-      const { candidateLayers, pending } = await handleBlockClick(
-        e,
-        this.overpassUrl,
-        this.candidateLayers,
-        this.$q,
-        this.map
-      )
-      this.candidateLayers = candidateLayers
-      this.pendingBlock = pending
+        const { candidateLayers, pending } = await handleBlockClick(
+          e,
+          this.overpassUrl,
+          this.candidateLayers,
+          this.$q,
+          this.map
+        )
+        this.candidateLayers = candidateLayers
+        this.pendingBlock = pending
 
-      if (pending) {
-        const text = pending.crossStreets.length === 2
-          ? `${pending.streetName} between ${pending.crossStreets[0]} and ${pending.crossStreets[1]}`
-          : pending.streetName
+        if (pending) {
+          const text = pending.crossStreets.length === 2
+            ? `${pending.streetName} between ${pending.crossStreets[0]} and ${pending.crossStreets[1]}`
+            : pending.streetName
+          this.$q.notify({
+            type: 'info',
+            message: text,
+            caption: 'Tap the highlighted block again to confirm',
+            timeout: 5000
+          })
+        }
+      } catch (err) {
+        console.error('[LeafletMap] Unexpected block-select failure:', err)
         this.$q.notify({
-          type: 'info',
-          message: text,
-          caption: 'Tap the highlighted block again to confirm',
-          timeout: 5000
+          type: 'negative',
+          message: 'Block selection failed. Please try again.',
+          timeout: 4000
         })
+      } finally {
+        this.blockSelectRequestPending = false
       }
     }
     window.turf = turf // testing only
@@ -128,6 +143,7 @@ export default {
     blockSelectActive (val) {
       if (val) {
         this.$q.notify({ type: 'info', message: 'Block-select mode: click a street to highlight blocks' })
+        this.map.off('click', this._blockClickHandler)
         this.map.on('click', this._blockClickHandler)
       } else {
         this.map.off('click', this._blockClickHandler)
@@ -136,6 +152,11 @@ export default {
           this.pendingBlock = null
         }
       }
+    }
+  },
+  beforeUnmount () {
+    if (this.map && this._blockClickHandler) {
+      this.map.off('click', this._blockClickHandler)
     }
   },
   methods: {
@@ -365,3 +386,16 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+.map-container {
+  width: 100%;
+  height: 400px;
+}
+
+@media (max-width: 599px) {
+  .map-container {
+    height: min(400px, 55vh);
+  }
+}
+</style>

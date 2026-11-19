@@ -1,5 +1,5 @@
 <template>
-  <q-page class="q-pa-lg flex flex-center">
+  <q-page class="dashboard-page flex flex-center">
     <div class="dashboard-wrapper">
       <q-banner
         v-if="showParkingConflict"
@@ -224,6 +224,25 @@ export default {
 </script>
 
 <style scoped>
+.dashboard-page {
+  padding: 24px;
+}
+
+.dashboard-wrapper {
+  width: 100%;
+  max-width: 900px;
+  min-width: 0;
+}
+
+.dashboard-wrapper > .q-card {
+  width: 100%;
+}
+
+@media (max-width: 599px) {
+  .dashboard-page {
+    padding: 12px;
+  }
+}
 
 .alert-banner {
   /*box-shadow: inset -1px -1px 5px 0px #534eae;*/
